@@ -358,12 +358,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if(localStorage.getItem('gerador_empresa')) document.getElementById('geradorEmpresa').value = localStorage.getItem('gerador_empresa');
+    if(localStorage.getItem('gerador_endereco')) document.getElementById('geradorEndereco').value = localStorage.getItem('gerador_endereco');
     if(localStorage.getItem('gerador_resp')) document.getElementById('geradorResp').value = localStorage.getItem('gerador_resp');
+    if(localStorage.getItem('gerador_tel')) document.getElementById('geradorTel').value = localStorage.getItem('gerador_tel');
 
     document.getElementById('saveDataBtn').addEventListener('click', () => {
         localStorage.setItem('gerador_empresa', document.getElementById('geradorEmpresa').value);
+        localStorage.setItem('gerador_endereco', document.getElementById('geradorEndereco').value);
         localStorage.setItem('gerador_resp', document.getElementById('geradorResp').value);
-        alert('Dados salvos!');
+        localStorage.setItem('gerador_tel', document.getElementById('geradorTel').value);
+        alert('Dados da empresa salvos com sucesso!');
     });
 
     const allGhs = [
