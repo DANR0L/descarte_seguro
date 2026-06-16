@@ -1,0 +1,12 @@
+ghs_dump.json
+ghs_raw.json
+ghs_utf8.json
+ghs_depth5.json
+synonyms_122.json
+un_number_122.json
+id_122.json
+workbook_v1.xlsx
+*.py
+*.ps1
+chemical-waste-next/
+test.*

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Regras de Classificação ONU para Misturas</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; max-width: 800px; margin: 2rem auto; padding: 0 1rem; color: #333; }
+        h1 { color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
+        h2 { color: #1e40af; margin-top: 2rem; }
+        ul { margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+        .tip { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 1rem; margin-top: 2rem; border-radius: 0 4px 4px 0; }
+        .tip strong { color: #1d4ed8; }
+        code { background: #f3f4f6; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+    <h1>Classificação Automatizada de ONU (Resolução ANTT)</h1>
+
+    <p>O sistema determina automaticamente o <strong>Número ONU</strong> e a <strong>Classe de Risco</strong> de misturas químicas escaneando os pictogramas (GHS) e frases de perigo (H) dos produtos inseridos na composição.</p>
+
+    <h2>Motor N.E. (Não Especificada Outrora)</h2>
+    <p>Se não houver um produto isolado compondo mais de <strong>90%</strong> da mistura, o sistema entra no modo N.E. aplicando a <strong>Regra de Precedência de Risco</strong>, que favorece os perigos na seguinte ordem hierárquica:</p>
+    
+    <ul>
+        <li><strong>Prioridade 1:</strong> <code>ONU 1993</code> (Classe 3 - Líquido Inflamável) - Acionado se houver substâncias com propriedades inflamáveis.</li>
+        <li><strong>Prioridade 2:</strong> <code>ONU 3264</code> (Classe 8 - Corrosivo Ácido) - Acionado de forma genérica para misturas com propriedades corrosivas.</li>
+        <li><strong>Prioridade 3:</strong> <code>ONU 2810</code> (Classe 6.1 - Tóxico Orgânico) - Acionado para misturas contendo substâncias tóxicas.</li>
+    </ul>
+
+    <p>O nome das substâncias com perigo associado é incluído dinamicamente dentro dos parênteses do Número ONU da mistura final impressa na etiqueta.</p>
+
+    <div class="tip">
+        <strong>💡 Exemplo Prático:</strong> Ao misturar <em>Álcool Etílico</em> (Inflamável) com <em>Fenol</em> (Tóxico), o sistema força o <code>ONU 1993</code> na classificação primária por causa da precedência exigida, colocando ambos os nomes técnicos da mistura entre os parênteses.
+    </div>
+
+</body>
+</html>

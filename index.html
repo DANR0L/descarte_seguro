@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descarte Seguro | NBR 16725</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300875F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2v7.31'/%3E%3Cpath d='M14 9.3V1.99'/%3E%3Cpath d='M8.5 2h7'/%3E%3Cpath d='M14 9.3a6.5 6.5 0 1 1-4 0'/%3E%3Cpath d='M5.52 16h12.96'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style id="dynamicPrintStyle"></style>
+</head>
+<body>
+    <!-- Modal de Autenticação -->
+    <div id="authModal" class="auth-modal">
+        <div class="auth-card">
+            <div class="logo" style="justify-content: center; margin-bottom: 1.5rem;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/></svg>
+                <h1 style="font-size: 1.8rem;">Descarte<span>Seguro</span></h1>
+            </div>
+            
+            <!-- Login / Cadastro -->
+            <form id="authForm">
+                <div class="input-group">
+                    <label for="authEmail">E-mail Corporativo</label>
+                    <input type="email" id="authEmail" required placeholder="seu.nome@empresa.com">
+                </div>
+                <div class="input-group" style="margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <label for="authPassword">Senha</label>
+                        <a href="#" id="forgotPasswordLnk" style="font-size: 0.8rem; color: var(--accent); text-decoration: none;">Esqueci a senha</a>
+                    </div>
+                    <input type="password" id="authPassword" required placeholder="••••••••">
+                </div>
+                <p id="authErrorMsg" class="alert-text hidden" style="margin-top: 1rem; text-align: center; font-size: 0.9rem;"></p>
+                <div class="actions-row" style="flex-direction: column; margin-top: 1.5rem;">
+                    <button type="submit" id="loginBtn" class="primary-btn">Entrar</button>
+                    <button type="button" id="registerBtn" class="secondary-btn">Criar Nova Conta</button>
+                </div>
+            </form>
+
+            <!-- Solicitar OTP -->
+            <form id="otpRequestForm" class="hidden">
+                <h3 style="margin-bottom: 1rem; font-size: 1.2rem; text-align: center;">Recuperação Segura</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem; text-align: center;">Enviaremos um código numérico para o seu e-mail.</p>
+                <div class="input-group">
+                    <label for="otpEmail">E-mail Corporativo</label>
+                    <input type="email" id="otpEmail" required placeholder="seu.nome@empresa.com">
+                </div>
+                <p id="otpReqErrorMsg" class="alert-text hidden" style="margin-top: 1rem; text-align: center; font-size: 0.9rem;"></p>
+                <div class="actions-row" style="flex-direction: column; margin-top: 1.5rem;">
+                    <button type="submit" id="sendOtpBtn" class="primary-btn">Enviar Link de Recuperação</button>
+                    <button type="button" id="backToLoginBtn1" class="secondary-btn">Voltar para o Login</button>
+                </div>
+            </form>
+
+            <!-- Validar OTP e Nova Senha -->
+            <form id="otpVerifyForm" class="hidden">
+                <h3 style="margin-bottom: 1rem; font-size: 1.2rem; text-align: center;">Definir Nova Senha</h3>
+                <div class="input-group" style="margin-top: 1rem;">
+                    <label for="newPassword">Escolha a Nova Senha (mínimo 6 caracteres)</label>
+                    <input type="password" id="newPassword" required placeholder="••••••••" minlength="6">
+                </div>
+                <div class="input-group" style="margin-top: 1rem;">
+                    <label for="confirmNewPassword">Confirme a Nova Senha</label>
+                    <input type="password" id="confirmNewPassword" required placeholder="••••••••" minlength="6">
+                </div>
+                <p id="otpVerErrorMsg" class="alert-text hidden" style="margin-top: 1rem; text-align: center; font-size: 0.9rem;"></p>
+                <div class="actions-row" style="flex-direction: column; margin-top: 1.5rem;">
+                    <button type="submit" id="verifyOtpBtn" class="primary-btn">Salvar Nova Senha</button>
+                    <button type="button" id="backToLoginBtn2" class="secondary-btn">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container no-print">
+        <header class="glass-header">
+            <div class="logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/></svg>
+                <h1>Descarte<span>Seguro</span></h1>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <p style="font-size: 0.9rem; color: var(--text-secondary);" id="userDisplay"></p>
+                
+                <button id="loadMixtureBtn" class="secondary-btn hidden" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; align-items: center; gap: 0.5rem; display: none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    Receitas Salvas
+                </button>
+                
+                <button id="complianceBtn" class="secondary-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">📜 Conformidade</button>
+                <button id="reportsBtn" class="secondary-btn hidden" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">📋 Relatórios</button>
+                <button id="logoutBtn" class="secondary-btn hidden" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Sair</button>
+            </div>
+        </header>
+
+        <!-- Modal de Relatórios (Dashboard) -->
+        <div id="dashboardModal" class="auth-modal hidden">
+            <div class="auth-card" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+                <div class="glass-header" style="margin-bottom: 1rem; padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <h2 style="margin: 0;">📋 Histórico de Descartes</h2>
+                        <button id="deleteSelectedBtn" class="secondary-btn hidden" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-color: var(--danger); color: var(--danger);">🗑 Excluir</button>
+                    </div>
+                    <button id="closeReportsBtn" class="secondary-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Fechar</button>
+                </div>
+                <div class="table-container">
+                    <table class="reports-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllReports"></th>
+                                <th>Data Acúmulo</th>
+                                <th>Produto</th>
+                                <th>Volume</th>
+                                <th>Setor/Empresa</th>
+                                <th>Impressão</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportsTableBody">
+                            <tr><td colspan="5" style="text-align: center;">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Conformidade -->
+        <div id="complianceModal" class="auth-modal hidden">
+            <div class="auth-card" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+                <div class="glass-header" style="margin-bottom: 1rem; padding: 1rem; flex-direction: column; align-items: flex-start; gap: 0.5rem;">
+                    <h2>SISTEMA UNIVERSAL DE GESTÃO DE RESÍDUOS</h2>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">TERMOS DE CONFORMIDADE TÉCNICA E LEGAL</p>
+                    <button id="closeComplianceBtn" class="secondary-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; position: absolute; right: 1rem; top: 1rem;">Fechar</button>
+                </div>
+                <div style="font-size: 0.9rem; line-height: 1.5; color: var(--text-primary);">
+                    <p><em>Diretrizes Normativas e Bases Científicas para Rotulagem e Gerenciamento de Resíduos</em></p>
+                    <p><em>14 de junho de 2026</em></p>
+                    <hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--border);">
+                    <h3 style="margin: 1rem 0 0.5rem;">⚖️ Termos de Conformidade Técnica e Legal</h3>
+                    <p style="margin-bottom: 1rem;">Este sistema de gerenciamento e rotulagem de resíduos químicos opera em estrita conformidade com os seguintes marcos regulatórios e bases científicas, garantindo a integridade técnica das informações prestadas e a segurança nos processos de descarte, armazenamento e transporte de substâncias perigosas.</p>
+                    
+                    <h4 style="margin: 1rem 0 0.5rem;">1. Normas Brasileiras (ABNT)</h4>
+                    <ul style="padding-left: 1.5rem; margin-bottom: 1rem;">
+                        <li><strong>ABNT NBR 16725:2023</strong> (Versão Corrigida 2025): Diretrizes para a elaboração de Fichas com Dados de Segurança de Resíduos (FDSR) e rotulagem de resíduos químicos perigosos.</li>
+                        <li><strong>ABNT NBR 10004:2024:</strong> Classificação de resíduos sólidos quanto à sua periculosidade (Classe I – Perigosos e Classe II – Não Perigosos).</li>
+                        <li><strong>ABNT NBR 14725:2023:</strong> Sistema Globalmente Harmonizado (GHS) para classificação, rotulagem e Ficha de Dados de Segurança (FDS).</li>
+                    </ul>
+
+                    <h4 style="margin: 1rem 0 0.5rem;">2. Regulamentação Sanitária e de Transporte</h4>
+                    <ul style="padding-left: 1.5rem; margin-bottom: 1rem;">
+                        <li><strong>RDC 222/2018 (ANVISA):</strong> Boas práticas de Gerenciamento de Resíduos de Serviços de Saúde (RSS), classificando resíduos químicos perigosos como Grupo B.</li>
+                        <li><strong>Resolução ANTT nº 5.998/2022:</strong> Regulamentação do transporte terrestre de produtos perigosos, estabelecendo critérios para o Nº ONU e Classes de Risco.</li>
+                    </ul>
+
+                    <h4 style="margin: 1rem 0 0.5rem;">3. Padrões Internacionais e Fontes de Dados</h4>
+                    <p style="margin-bottom: 0.5rem;">A automação de dados e o motor de busca híbrida deste sistema utilizam informações integradas das seguintes instituições globais, assegurando que as classificações toxicológicas e ecotoxicológicas estejam alinhadas ao estado da arte da ciência química internacional:</p>
+                    <ul style="padding-left: 1.5rem; margin-bottom: 1rem;">
+                        <li><strong>GHS (Purple Book - 7ª Edição):</strong> Sistema Globalmente Harmonizado da Organização das Nações Unidas (ONU) para a comunicação de perigos.</li>
+                        <li><strong>PubChem (NIH/USA):</strong> Base de dados de referência para identificadores químicos (CAS Number, CID) e propriedades moleculares.</li>
+                        <li><strong>ECHA (European Chemicals Agency):</strong> Inventário de Classificação e Rotulagem (C&L Inventory) para validação de frases de perigo (H) e precaução (P).</li>
+                        <li><strong>OSHA (USA):</strong> Padrões de comunicação de perigos e diretrizes de segurança ocupacional.</li>
+                    </ul>
+
+                    <h4 style="margin: 1rem 0 0.5rem;">4. Isenção de Responsabilidade e Curadoria</h4>
+                    <p style="margin-bottom: 1rem;">Os dados obtidos via API (PubChem/ECHA) passam por um processo rigoroso de filtragem, tradução técnica e deduplicação para garantir concisão e clareza na comunicação do perigo. No entanto, a responsabilidade final pela validação da composição exata do resíduo e sua respectiva rotulagem cabe exclusivamente ao Responsável Técnico (RT) do gerador, conforme as diretrizes do Plano de Gerenciamento de Resíduos de Serviços de Saúde (PGRSS) da instituição.</p>
+                    
+                    <hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--border);">
+                    <p style="text-align: center; color: var(--text-secondary); font-size: 0.8rem;">DEPARTAMENTO DE SEGURANÇA QUÍMICA E DESENVOLVIMENTO<br>Documento gerado em: 14 de junho de 2026<br><strong>CONFORMIDADE TÉCNICA ASSEGURADA</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <main>
+            <section class="search-section">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Busque por Nome do Resíduo, Mistura ou CAS..." autocomplete="off">
+                    <button id="searchBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                </div>
+                <div id="searchResults" class="search-results"></div>
+            </section>
+
+            <section id="mixtureSection" class="product-details hidden" style="margin-top: 1rem;">
+                <div class="details-header" style="flex-direction: column; align-items: flex-start; gap: 0.5rem;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                        <h2>🧪 Resíduos na Mistura</h2>
+                        <button id="saveMixtureBtn" class="secondary-btn" style="font-size: 0.8rem; padding: 0.3rem 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/></svg>
+                            Salvar Receita
+                        </button>
+                    </div>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Defina a concentração (%) de cada resíduo. A etiqueta final unificará os riscos (Regra de Aditividade GHS).</p>
+                </div>
+                
+                <div id="mixtureError" class="alert-text hidden" style="color: var(--danger); background: rgba(239, 68, 68, 0.1); padding: 1rem; border-radius: 8px; font-weight: bold; margin-bottom: 1rem;">
+                    ERRO DE SEGURANÇA: Mistura incompatível detectada.
+                </div>
+
+                <div id="mixtureList" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+                    <!-- Itens da mistura serão injetados aqui -->
+                </div>
+            </section>
+
+            <section id="productDetails" class="product-details hidden">
+                <div class="details-header" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <h2 id="pdNome" style="margin: 0;">Nome do Produto</h2>
+                    <span class="badge onu-badge" id="pdOnu">ONU: 1234</span>
+                    <a href="relatorio_onu.html" target="_blank" style="font-size: 0.85rem; color: #3b82f6; text-decoration: underline; cursor: pointer;" title="Entenda como este número é gerado">[ver obs. das regras da ANTT]</a>
+                </div>
+                <p id="pdComposicao" class="subtitle-comp"></p>
+                
+                <div class="grid-layout">
+                    <!-- Configurações da Etiqueta (Formulário NBR) -->
+                    <div class="card action-card">
+                        <h3>⚙️ Configuração da Etiqueta (NBR 16725)</h3>
+                        
+                        <div class="form-grid">
+                            <div class="input-group full-width">
+                                <label for="volEmbalagem">Capacidade da Embalagem (Define o Tamanho da Etiqueta):</label>
+                                <select id="volEmbalagem">
+                                    <option value="A">Até 3 Litros (Rótulo: 52x74mm)</option>
+                                    <option value="B" selected>De 3 até 50 Litros (Rótulo: 74x105mm)</option>
+                                    <option value="C">De 50 até 500 Litros (Rótulo: 105x148mm)</option>
+                                    <option value="D">Acima de 500 Litros (Rótulo: 148x210mm)</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="qtdEtiquetas">Quantidade de Etiquetas:</label>
+                                <input type="number" id="qtdEtiquetas" value="1" min="1" max="100">
+                            </div>
+
+                            <div class="input-group">
+                                <label for="dataDescarte">Data de Início do Acúmulo:</label>
+                                <input type="date" id="dataDescarte">
+                            </div>
+
+                            <div class="input-group">
+                                <label for="estadoFisico">Estado Físico:</label>
+                                <select id="estadoFisico">
+                                    <option value="Líquido">Líquido</option>
+                                    <option value="Sólido">Sólido</option>
+                                    <option value="Gasoso">Gasoso</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group full-width">
+                                <label for="volMaximo">Volume/Peso Total (ex: 5 Litros, 2 Kg):</label>
+                                <input type="text" id="volMaximo" placeholder="Ex: 5 Litros">
+                            </div>
+
+                            <div class="divider"></div>
+                            <h4 class="section-title">Identificação do Gerador</h4>
+                            
+                            <div class="input-group full-width">
+                                <label for="geradorEmpresa">Empresa/Setor:</label>
+                                <input type="text" id="geradorEmpresa" placeholder="Indústria Exemplo S.A. - Lab. CQ">
+                            </div>
+
+                            <div class="input-group full-width">
+                                <label for="geradorEndereco">Endereço Completo:</label>
+                                <input type="text" id="geradorEndereco" placeholder="Av. Principal, 1000 - São Paulo/SP">
+                            </div>
+
+                            <div class="input-group">
+                                <label for="geradorResp">Responsável Técnico:</label>
+                                <input type="text" id="geradorResp" placeholder="João Silva">
+                            </div>
+
+                            <div class="input-group">
+                                <label for="geradorTel">Telefone de Emergência (24h):</label>
+                                <input type="text" id="geradorTel" placeholder="(11) 99999-0000">
+                            </div>
+                        </div>
+
+                        <div class="actions-row">
+                            <button id="saveDataBtn" class="secondary-btn">Salvar Dados da Empresa</button>
+                            <button id="printBtn" class="primary-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                                Imprimir Etiqueta Oficial
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Visualização de Risco -->
+                    <div class="card warning-card">
+                        <h3>⚠️ Riscos e GHS</h3>
+                        <p><strong>Classe de Risco:</strong> <span id="pdClasse"></span></p>
+                        <p><strong>Palavra de Advertência:</strong> <span id="pdAdvertencia" class="alert-text"></span></p>
+
+                        <div class="pictogram-selector-ui">
+                            <h4 style="margin-bottom: 0.5rem; color: var(--text-primary);">Pictogramas Ativos (Clique para Ligar/Desligar):</h4>
+                            <div id="pdPictogramas" class="pictogram-grid"></div>
+                        </div>
+
+                        <div class="phrases">
+                            <strong>Frases de Perigo (H):</strong>
+                            <ul id="pdFrasesH"></ul>
+                        </div>
+                        <div class="phrases">
+                            <strong>Frases de Precaução (P):</strong>
+                            <ul id="pdFrasesP"></ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+        <!-- Modal de Receitas Salvas -->
+        <div id="savedMixturesModal" class="auth-modal hidden">
+            <div class="auth-card" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+                <div class="glass-header" style="margin-bottom: 1rem; padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="margin: 0;">⭐ Receitas Salvas</h2>
+                    <button id="closeSavedMixturesBtn" class="secondary-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Fechar</button>
+                </div>
+                <div id="savedMixturesList" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- Itens salvos injetados aqui via JS -->
+                </div>
+            </div>
+        </div>
+
+        <footer>
+
+    <!-- Etiqueta de Impressão (DOM dinâmico) -->
+    <div id="printArea" class="print-only">
+        <div id="labelBox" class="label-box">
+            <h1 id="lblNome"></h1>
+            <p id="lblComp"></p>
+
+            <div class="label-ghs-row" style="display: flex; justify-content: space-between; align-items: center; padding: 2mm;">
+                <div id="lblPictogramas" class="pictogram-print-container" style="flex: 1;"></div>
+                <h2 id="lblAdv" class="warning-word" style="flex: 1; text-align: center; margin: 0;"></h2>
+                <div id="lblTransporte" class="transport-info-print" style="flex: 1; text-align: right;">
+                    <div style="font-weight: bold; font-size: 1.2em;"><span id="lblOnuNum"></span></div>
+                    <div style="font-size: 1em;">Classe: <span id="lblClasseNum"></span></div>
+                </div>
+            </div>
+
+            <div class="label-phrases">
+                <p><strong>Perigos:</strong> <span id="lblPerigos"></span></p>
+                <p><strong>Precauções:</strong> <span id="lblPrecaucoes"></span></p>
+            </div>
+
+            <div class="label-info-row">
+                <div><strong>Início Acúmulo:</strong> <span id="lblData"></span></div>
+                <div><strong>Estado:</strong> <span id="lblEstado"></span></div>
+                <div><strong>Vol Máx:</strong> <span id="lblVol"></span></div>
+            </div>
+
+            <div class="label-generator">
+                <p><strong>Gerador:</strong> <span id="lblEmpresa"></span></p>
+                <p><strong>Endereço:</strong> <span id="lblEndereco"></span></p>
+                <p><strong>Resp. Técnico:</strong> <span id="lblResp"></span></p>
+                <p><strong>Tel Emergência:</strong> <span id="lblTel"></span></p>
+            </div>
+            
+            <div class="label-footer" style="text-align: center; margin-top: 2mm; border-top: 1px solid #000; padding-top: 1mm; font-size: 0.65em; font-weight: bold;">
+                Conforme ABNT NBR 16725:2023 e NBR 10004:2024
+            </div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
