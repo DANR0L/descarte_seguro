@@ -73,6 +73,9 @@ async function checkSession() {
                 const searchInput = document.getElementById('searchInput');
                 if (searchInput) searchInput.focus();
             }, 100);
+            
+            // Carrega o perfil da empresa vinculado à conta
+            loadUserProfile();
         } else {
             document.getElementById('authModal').classList.remove('hidden');
             document.getElementById('logoutBtn').classList.add('hidden');
@@ -89,6 +92,26 @@ async function checkSession() {
         }
     } catch (e) {
         console.error("Erro no checkSession:", e);
+    }
+}
+
+async function loadUserProfile() {
+    if (!currentUser || !supabaseClient) return;
+    try {
+        const { data, error } = await supabaseClient
+            .from('perfis_empresa')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .single();
+            
+        if (data) {
+            document.getElementById('geradorEmpresa').value = data.empresa || '';
+            document.getElementById('geradorEndereco').value = data.endereco || '';
+            document.getElementById('geradorResp').value = data.responsavel || '';
+            document.getElementById('geradorTel').value = data.telefone || '';
+        }
+    } catch (e) {
+        console.warn("Nenhum perfil de empresa salvo na nuvem ainda.");
     }
 }
 
@@ -357,17 +380,51 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Fallback inicial para localStorage (será sobrescrito pelo Supabase se houver dados na nuvem)
     if(localStorage.getItem('gerador_empresa')) document.getElementById('geradorEmpresa').value = localStorage.getItem('gerador_empresa');
     if(localStorage.getItem('gerador_endereco')) document.getElementById('geradorEndereco').value = localStorage.getItem('gerador_endereco');
     if(localStorage.getItem('gerador_resp')) document.getElementById('geradorResp').value = localStorage.getItem('gerador_resp');
     if(localStorage.getItem('gerador_tel')) document.getElementById('geradorTel').value = localStorage.getItem('gerador_tel');
 
-    document.getElementById('saveDataBtn').addEventListener('click', () => {
-        localStorage.setItem('gerador_empresa', document.getElementById('geradorEmpresa').value);
-        localStorage.setItem('gerador_endereco', document.getElementById('geradorEndereco').value);
-        localStorage.setItem('gerador_resp', document.getElementById('geradorResp').value);
-        localStorage.setItem('gerador_tel', document.getElementById('geradorTel').value);
-        alert('Dados da empresa salvos com sucesso!');
+    document.getElementById('saveDataBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('saveDataBtn');
+        const originalText = btn.textContent;
+        btn.textContent = "Salvando...";
+        btn.disabled = true;
+
+        const empresa = document.getElementById('geradorEmpresa').value;
+        const endereco = document.getElementById('geradorEndereco').value;
+        const resp = document.getElementById('geradorResp').value;
+        const tel = document.getElementById('geradorTel').value;
+
+        // Salva na nuvem
+        if (currentUser && supabaseClient) {
+            const { error } = await supabaseClient
+                .from('perfis_empresa')
+                .upsert({
+                    user_id: currentUser.id,
+                    empresa: empresa,
+                    endereco: endereco,
+                    responsavel: resp,
+                    telefone: tel,
+                    updated_at: new Date()
+                });
+            
+            if (error) {
+                console.error("Erro ao salvar perfil:", error);
+                alert("Erro ao salvar na nuvem, mas guardaremos no seu navegador.");
+            }
+        }
+
+        // Mantém backup local no navegador
+        localStorage.setItem('gerador_empresa', empresa);
+        localStorage.setItem('gerador_endereco', endereco);
+        localStorage.setItem('gerador_resp', resp);
+        localStorage.setItem('gerador_tel', tel);
+        
+        btn.textContent = originalText;
+        btn.disabled = false;
+        alert('Dados da empresa salvos na sua conta com sucesso!');
     });
 
     const allGhs = [

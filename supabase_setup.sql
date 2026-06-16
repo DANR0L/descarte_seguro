@@ -46,3 +46,21 @@ CREATE POLICY "Permitir inserÃ§Ã£o no histÃ³rico" ON public.historico_descartes 
 
 -- Adicionado Política de DELETE para o Histórico:
 CREATE POLICY "Permitir exclusão do próprio histórico" ON public.historico_descartes FOR DELETE USING (auth.uid() = user_id);
+
+
+-- 4. Criar a tabela de Perfil da Empresa (Vinculada ao Usuário)
+CREATE TABLE public.perfis_empresa (
+    user_id uuid REFERENCES auth.users(id) PRIMARY KEY,
+    empresa text,
+    endereco text,
+    responsavel text,
+    telefone text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE public.perfis_empresa ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Permitir leitura do próprio perfil" ON public.perfis_empresa FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Permitir inserção do próprio perfil" ON public.perfis_empresa FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permitir update do próprio perfil" ON public.perfis_empresa FOR UPDATE USING (auth.uid() = user_id);
