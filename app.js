@@ -1753,8 +1753,11 @@ async function searchPubChem(query) {
                     incompatibilidade: incompatibilidade,
                     onu_number: onu_number,
                     observacoes: JSON.stringify(payload_observacoes)
-                }]);
+                }]).select();
                 error = res.error;
+                if (!error && res.data && res.data.length > 0) {
+                    currentMyProductId = res.data[0].id;
+                }
             }
 
             await loadMyProducts();
