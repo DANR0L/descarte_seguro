@@ -1188,7 +1188,6 @@ async function searchPubChem(query) {
                 if (cls.includes("2")) classesObj[2] = true;
                 if (cls.includes("9")) classesObj[9] = true;
             });
-            });
             
             let isGasMixture = currentMixture.every(m => {
                 const cls = m.produto.Risk_Class || "";
@@ -1369,8 +1368,6 @@ async function searchPubChem(query) {
             if (oxygenComponent && parseFloat(oxygenComponent.percentage) > 23.5) {
                 selectedPictograms.add('ghs03_comburente');
             }
-        }
-
         }
 
         // --- Integração do Módulo de Classificação de Ácidos (acidClassification.js) ---
