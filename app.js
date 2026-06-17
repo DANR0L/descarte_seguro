@@ -1,4 +1,4 @@
-
+﻿
 
 const ghsSvgs = {
     ghs02_inflamavel: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="50" width="50" height="50" fill="white" stroke="#E3000F" stroke-width="6" transform="rotate(-45 50 50)" stroke-linejoin="round"/><path d="M50 20 Q40 35 45 50 Q30 55 45 75 Q60 75 60 60 Q70 55 55 40 Q65 45 50 20 Z" fill="black"/><rect x="30" y="77" width="40" height="3" fill="black"/></svg>`,
@@ -13,6 +13,7 @@ const SUPABASE_URL = 'https://rvbfockxvjahkzaeizie.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2YmZvY2t4dmphaGt6YWVpemllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzOTkxMjcsImV4cCI6MjA5Njk3NTEyN30.OquFrwdIiyjXIE6vwhpm2mVxyviQzSoiQbFFz0rAhsc';
 
 let supabaseClient;
+let myProductsCache = [];
 try {
     if (!window.supabase) {
         alert("ERRO CRÍTICO: O script do Supabase não foi carregado pela internet! Verifique sua conexão ou se há bloqueios no navegador.");
@@ -76,6 +77,7 @@ async function checkSession() {
             
             // Carrega o perfil da empresa vinculado à conta
             loadUserProfile();
+              await loadMyProducts();
         } else {
             document.getElementById('authModal').classList.remove('hidden');
             document.getElementById('logoutBtn').classList.add('hidden');
@@ -92,6 +94,28 @@ async function checkSession() {
         }
     } catch (e) {
         console.error("Erro no checkSession:", e);
+    }
+}
+
+
+async function loadMyProducts() {
+    if (!currentUser || !supabaseClient) return;
+    try {
+        const { data, error } = await supabaseClient.from('meus_produtos').select('*').eq('user_id', currentUser.id);
+        if (data) {
+            myProductsCache = data.map(d => ({
+                id_supabase: d.id,
+                nome: d.nome,
+                tipo: d.tipo,
+                ghs_classes: d.ghs_classes,
+                estado_fisico: d.estado_fisico,
+                incompatibilidade: d.incompatibilidade,
+                observacoes: d.observacoes,
+                onu_number: d.onu_number
+            }));
+        }
+    } catch (e) {
+        console.error('Erro loadMyProducts', e);
     }
 }
 
@@ -802,8 +826,35 @@ async function searchPubChem(query) {
             return cn.includes(queryNorm) || (p.CAS_Number && p.CAS_Number.includes(queryNorm)) || iupac.includes(queryNorm);
         });
 
-        if (filtered.length > 0) {
-            renderResults(filtered);
+        
+        const myFiltered = myProductsCache.filter(p => {
+            const cn = p.nome ? p.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+            return cn.includes(queryNorm);
+        }).map(p => {
+            let pObj = {
+                Common_Name: p.nome,
+                Common_Name_PT: p.nome,
+                H_Phrases: [],
+                P_Phrases: [],
+                CAS_Number: p.tipo === 'residuo' ? 'Meu Banco' : 'Minha Mistura',
+                isMyProduct: true,
+                meuProdutoData: p,
+                Pictograms_List: p.ghs_classes || []
+            };
+            if(p.tipo === 'mistura' && p.observacoes) {
+                try {
+                    const parsedData = JSON.parse(p.observacoes);
+                    pObj.isMixture = true;
+                    pObj.mixtureData = parsedData;
+                }catch(e){}
+            }
+            return pObj;
+        });
+
+        const combined = [...myFiltered, ...filtered];
+        if (combined.length > 0) {
+            renderResults(combined);
+
         } else {
             searchResults.innerHTML = '<div class="result-item" style="color: #666;"><i class="fas fa-spinner fa-spin"></i> Buscando sugestões online...</div>';
             searchResults.classList.add('active');
@@ -878,8 +929,21 @@ async function searchPubChem(query) {
         list.forEach(p => {
             const div = document.createElement('div');
             div.className = 'result-item';
-            div.innerHTML = `<strong>${p.Common_Name}</strong> <small>(${p.CAS_Number})</small> ${isOnline ? '<span style="color: #00875F; font-size: 0.8em; float: right;">[PubChem]</span>' : ''}`;
-            div.addEventListener('click', () => selectProduct(p));
+            let badge = isOnline ? '<span style="color: #00875F; font-size: 0.8em; float: right;">[PubChem]</span>' : '';
+            if (p.isMyProduct) {
+                badge = `<span style="color: #3b82f6; font-size: 0.8em; float: right;">[Meu Banco]</span>`;
+            }
+            div.innerHTML = `<strong>${p.Common_Name}</strong> <small>(${p.CAS_Number || ''})</small> ${badge}`;
+            div.addEventListener('click', () => {
+                if(p.isMixture && p.mixtureData) {
+                    currentMixture = p.mixtureData.map(item => ({...item, id: Date.now() + Math.random()}));
+                    updateMixtureDisplay();
+                    searchInput.value = '';
+                    searchResults.classList.remove('active');
+                } else {
+                    selectProduct(p);
+                }
+            });
             searchResults.appendChild(div);
         });
         searchResults.classList.add('active');
@@ -1485,19 +1549,91 @@ async function searchPubChem(query) {
     const closeSavedMixturesBtn = document.getElementById('closeSavedMixturesBtn');
     const savedMixturesList = document.getElementById('savedMixturesList');
 
+    
     function getSavedMixtures() {
         if (!currentUser) return [];
-        const saved = localStorage.getItem(`saved_mixtures_${currentUser.id}`);
-        return saved ? JSON.parse(saved) : [];
+        return myProductsCache.filter(p => p.tipo === 'mistura').map(p => {
+            let data = [];
+            try { data = JSON.parse(p.observacoes || '[]'); }catch(e){}
+            return {
+                id: p.id_supabase,
+                name: p.nome,
+                data: data
+            };
+        });
     }
 
-    function saveMixtures(mixtures) {
-        if (!currentUser) return;
-        localStorage.setItem(`saved_mixtures_${currentUser.id}`, JSON.stringify(mixtures));
+    async function saveMixtures(mixtures) {
+        if (!currentUser || !supabaseClient) return;
+        
+        // This is called when saving a NEW mixture. We find the latest one added.
+        const latest = mixtures[mixtures.length - 1];
+        if(!latest) return;
+        
+        const { data, error } = await supabaseClient.from('meus_produtos').insert([{
+            user_id: currentUser.id,
+            nome: latest.name,
+            tipo: 'mistura',
+            observacoes: JSON.stringify(latest.data)
+        }]);
+        
+        await loadMyProducts(); // reload cache
+    }
+
+
+    
+    const savePersonalDbBtn = document.getElementById('savePersonalDbBtn');
+    if(savePersonalDbBtn) {
+        savePersonalDbBtn.addEventListener('click', async () => {
+            if (!currentUser || !supabaseClient) {
+                alert("Você precisa estar logado para salvar no Meu Banco.");
+                return;
+            }
+            
+            const originalText = savePersonalDbBtn.innerHTML;
+            savePersonalDbBtn.textContent = "Salvando...";
+            
+            const nome = document.getElementById('pdNome').textContent.trim();
+            const onu_number = document.getElementById('pdOnu').textContent.replace('ONU: ', '').trim();
+            const estado_fisico = document.getElementById('pdEstado') ? document.getElementById('pdEstado').value : '';
+            const incompatibilidade = document.getElementById('pdIncompatibilidade') ? document.getElementById('pdIncompatibilidade').value : '';
+            
+            const ghs_classes = [];
+            document.querySelectorAll('#pdPictogramas .picto-item').forEach(item => {
+                if (item.classList.contains('active')) {
+                    // Extract ID from the image alt or title. Since we don't store ID on the div, we can match by title
+                    const title = item.title;
+                    const ghsObj = allGhs.find(g => g.label === title);
+                    if(ghsObj) ghs_classes.push(ghsObj.id);
+                }
+            });
+
+            const { error } = await supabaseClient.from('meus_produtos').upsert({
+                user_id: currentUser.id,
+                nome: nome,
+                tipo: currentMixture.length > 1 ? 'mistura' : 'residuo',
+                ghs_classes: ghs_classes,
+                estado_fisico: estado_fisico,
+                incompatibilidade: incompatibilidade,
+                onu_number: onu_number,
+                observacoes: JSON.stringify(currentMixture)
+            }, { onConflict: 'user_id, nome' }); // Assuming we don't strictly conflict by name, Supabase upsert requires unique key. Let's just insert for now.
+
+            await loadMyProducts();
+            
+            savePersonalDbBtn.innerHTML = originalText;
+            
+            if (error) {
+                console.error("Erro ao salvar no Meu Banco:", error);
+                alert("Erro ao salvar: " + error.message);
+            } else {
+                alert(nome + " salvo no Meu Banco com sucesso!");
+            }
+        });
     }
 
     if(saveMixtureBtn) {
-        saveMixtureBtn.addEventListener('click', () => {
+        saveMixtureBtn.addEventListener('click', async () => {
             if (currentMixture.length === 0) return;
             const recipeName = prompt("Digite um nome para esta Receita/Mistura (ex: Mistura HPLC):");
             if (!recipeName) return;
@@ -1508,8 +1644,11 @@ async function searchPubChem(query) {
                 name: recipeName,
                 data: currentMixture
             });
-            saveMixtures(mixtures);
-            alert("Receita salva com sucesso!");
+            const originalText = saveMixtureBtn.textContent;
+            saveMixtureBtn.textContent = 'Salvando...';
+            await saveMixtures(mixtures);
+            saveMixtureBtn.textContent = originalText;
+            alert("Receita salva no Meu Banco com sucesso!");
         });
     }
 

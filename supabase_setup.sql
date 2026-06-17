@@ -64,3 +64,24 @@ ALTER TABLE public.perfis_empresa ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Permitir leitura do próprio perfil" ON public.perfis_empresa FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Permitir inserção do próprio perfil" ON public.perfis_empresa FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Permitir update do próprio perfil" ON public.perfis_empresa FOR UPDATE USING (auth.uid() = user_id);
+
+
+-- 5. Criar a tabela Meu Banco de Produtos
+CREATE TABLE public.meus_produtos (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid REFERENCES auth.users(id) NOT NULL,
+    nome text NOT NULL,
+    tipo text NOT NULL, -- 'residuo' ou 'mistura'
+    ghs_classes jsonb,
+    estado_fisico text,
+    incompatibilidade text,
+    observacoes text,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE public.meus_produtos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Permitir leitura dos próprios produtos" ON public.meus_produtos FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Permitir inserção dos próprios produtos" ON public.meus_produtos FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permitir update dos próprios produtos" ON public.meus_produtos FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permitir deleção dos próprios produtos" ON public.meus_produtos FOR DELETE USING (auth.uid() = user_id);
