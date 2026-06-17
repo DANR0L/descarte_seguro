@@ -1644,7 +1644,8 @@ async function searchPubChem(query) {
             return {
                 id: p.id_supabase,
                 name: p.nome,
-                data: data
+                data: data,
+                raw: p
             };
         });
     }
@@ -1813,6 +1814,48 @@ async function searchPubChem(query) {
             }));
             updateMixtureDisplay();
             savedMixturesModal.classList.add('hidden');
+            
+            // Timeout para restaurar edições como Nome, ONU, Estado, Incompatibilidade e Pictogramas
+            setTimeout(() => {
+                currentMyProductId = recipe.raw.id_supabase;
+                const data = recipe.raw;
+                if(data.nome) document.getElementById('pdNome').textContent = data.nome;
+                if(data.onu_number) document.getElementById('pdOnu').textContent = (data.onu_number.toUpperCase().startsWith('ONU') ? '' : 'ONU: ') + data.onu_number;
+                if(data.estado_fisico && document.getElementById('pdEstado')) document.getElementById('pdEstado').value = data.estado_fisico;
+                if(data.incompatibilidade && document.getElementById('pdIncompatibilidade')) document.getElementById('pdIncompatibilidade').value = data.incompatibilidade;
+                
+                // Restaurar Pictogramas
+                if(data.ghs_classes && Array.isArray(data.ghs_classes)) {
+                    selectedPictograms.clear();
+                    data.ghs_classes.forEach(cls => selectedPictograms.add(cls));
+                    
+                    const picContainer = document.getElementById('pdPictogramas');
+                    if (picContainer) {
+                        picContainer.querySelectorAll('.picto-item').forEach(item => {
+                            const title = item.title;
+                            const ghsObj = allGhs.find(g => g.label === title);
+                            if(ghsObj && data.ghs_classes.includes(ghsObj.id)) {
+                                item.classList.add('active');
+                            } else {
+                                item.classList.remove('active');
+                            }
+                        });
+                    }
+                }
+
+                // Restaurar Frases H e P
+                try {
+                    const parsedObs = JSON.parse(data.observacoes || '{}');
+                    if (!Array.isArray(parsedObs)) {
+                        if (parsedObs.frases_h && Array.isArray(parsedObs.frases_h)) {
+                            document.getElementById('pdFrasesH').innerHTML = parsedObs.frases_h.map(f => `<li>${f}</li>`).join('');
+                        }
+                        if (parsedObs.frases_p && Array.isArray(parsedObs.frases_p)) {
+                            document.getElementById('pdFrasesP').innerHTML = parsedObs.frases_p.map(f => `<li>${f}</li>`).join('');
+                        }
+                    }
+                } catch(e) {}
+            }, 50);
         }
     };
 
