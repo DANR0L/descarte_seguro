@@ -1,4 +1,4 @@
-﻿
+
 
 const ghsSvgs = {
     ghs02_inflamavel: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="50" width="50" height="50" fill="white" stroke="#E3000F" stroke-width="6" transform="rotate(-45 50 50)" stroke-linejoin="round"/><path d="M50 20 Q40 35 45 50 Q30 55 45 75 Q60 75 60 60 Q70 55 55 40 Q65 45 50 20 Z" fill="black"/><rect x="30" y="77" width="40" height="3" fill="black"/></svg>`,
@@ -1781,12 +1781,15 @@ async function searchPubChem(query) {
         }
     };
 
-    window.deleteRecipe = function(id) {
-        if(!confirm("Tem certeza que deseja apagar esta receita salva?")) return;
-        let mixtures = getSavedMixtures();
-        mixtures = mixtures.filter(m => m.id !== id);
-        saveMixtures(mixtures);
-        renderSavedMixtures();
+    window.deleteRecipe = async function(id) {
+        if(!confirm("Tem certeza que deseja apagar esta receita salva do seu banco de dados?")) return;
+        const { error } = await supabaseClient.from('meus_produtos').delete().eq('id', id);
+        if (error) {
+            alert("Erro ao excluir: " + error.message);
+        } else {
+            await loadMyProducts();
+            renderSavedMixtures();
+        }
     };
 
     function renderSavedMixtures() {
