@@ -1171,18 +1171,20 @@ async function searchPubChem(query) {
 
             currentMixture.forEach(m => {
                 const cls = m.produto.Risk_Class || "";
+                const pictos = m.produto.Pictograms_List || [];
+                
                 if (cls.includes("1") && !cls.includes("6.1")) classesObj[1] = true;
                 if (cls.includes("5.2")) classesObj[5.2] = true;
                 if (cls.includes("7")) classesObj[7] = true;
-                if (cls.includes("3")) classesObj[3] = true;
-                if (cls.includes("6.1") || cls.includes("6")) {
+                if (cls.includes("3") || pictos.includes("ghs02_inflamavel")) classesObj[3] = true;
+                if (cls.includes("6.1") || cls.includes("6") || pictos.includes("ghs06_toxico")) {
                     classesObj[6] = true;
                     let hList = JSON.stringify(m.produto.H_Phrases || []).toLowerCase();
                     if (hList.includes("h330") || hList.includes("h331")) {
                         hasInhalationToxicity = true;
                     }
                 }
-                if (cls.includes("8")) classesObj[8] = true;
+                if (cls.includes("8") || pictos.includes("ghs05_corrosivo")) classesObj[8] = true;
                 if (cls.includes("2")) classesObj[2] = true;
                 if (cls.includes("9")) classesObj[9] = true;
             });
@@ -1281,6 +1283,17 @@ async function searchPubChem(query) {
 
         // Aditividade: Se soma tóxica > 1%, força Tóxico
         if (sumToxic > 1) {
+            selectedPictograms.add('ghs06_toxico');
+            hasDanger = true;
+            unifiedAdvertencia = "PERIGO";
+        }
+        
+        // Upgrade de Toxicidade: Se algum componente for da Classe 6.1, dispara GHS06 e PERIGO
+        let hasClass6 = currentMixture.some(m => {
+            const cls = m.produto.Risk_Class || "";
+            return cls.includes("6.1") || cls.includes("6");
+        });
+        if (hasClass6) {
             selectedPictograms.add('ghs06_toxico');
             hasDanger = true;
             unifiedAdvertencia = "PERIGO";
