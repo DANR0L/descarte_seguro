@@ -1714,8 +1714,8 @@ async function searchPubChem(query) {
                     <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">${composicaoText}</p>
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
-                    <button onclick="loadRecipe(${recipe.id})" class="primary-btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Carregar</button>
-                    <button onclick="deleteRecipe(${recipe.id})" class="secondary-btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; border-color: var(--danger); color: var(--danger);">Excluir</button>
+                    <button onclick="loadRecipe('${recipe.id}')" class="primary-btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Carregar</button>
+                    <button onclick="deleteRecipe('${recipe.id}')" class="secondary-btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; border-color: var(--danger); color: var(--danger);">Excluir</button>
                 </div>
             `;
             savedMixturesList.appendChild(div);
