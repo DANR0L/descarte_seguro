@@ -1188,32 +1188,7 @@ async function searchPubChem(query) {
                 if (cls.includes("2")) classesObj[2] = true;
                 if (cls.includes("9")) classesObj[9] = true;
             });
-            
-            // Filtro de Ácidos Orgânicos (Acético, Propiônico, etc)
-            let isOrganicAcidDominant = currentMixture.some(m => {
-                const nameLower = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
-                return nameLower.includes("ácido acético") || nameLower.includes("acido acetico") ||
-                       nameLower.includes("ácido propiônico") || nameLower.includes("acido propionico") ||
-                       nameLower.includes("ácido fórmico") || nameLower.includes("acido formico") ||
-                       nameLower.includes("ácido cítrico") || nameLower.includes("acido citrico");
             });
-            
-            if (isOrganicAcidDominant) {
-                let hasRealToxicOrFlammable = currentMixture.some(m => {
-                    const nameLower = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
-                    const isOrganicAcid = nameLower.includes("ácido acético") || nameLower.includes("acido acetico") ||
-                                          nameLower.includes("ácido propiônico") || nameLower.includes("acido propionico") ||
-                                          nameLower.includes("ácido fórmico") || nameLower.includes("acido formico") ||
-                                          nameLower.includes("ácido cítrico") || nameLower.includes("acido citrico");
-                    return !isOrganicAcid && ((m.produto.Risk_Class || "").includes("6.1") || (m.produto.Risk_Class || "").includes("3"));
-                });
-
-                if (!hasRealToxicOrFlammable) {
-                    classesObj[3] = false; // Suprime inflamabilidade baixa
-                    classesObj[6] = false; // Suprime toxicidade
-                    classesObj[8] = true;  // Força corrosivo
-                }
-            }
             
             let isGasMixture = currentMixture.every(m => {
                 const cls = m.produto.Risk_Class || "";
@@ -1260,19 +1235,7 @@ async function searchPubChem(query) {
                 unifiedOnu = `ONU 1993 LÍQUIDO INFLAMÁVEL, N.E. (${names})`;
                 unifiedClass = "3";
             } else if (classesObj[8]) {
-                let isOrganicAcid = currentMixture.some(m => {
-                    const nameLower = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
-                    return nameLower.includes("ácido acético") || nameLower.includes("acido acetico") ||
-                           nameLower.includes("ácido propiônico") || nameLower.includes("acido propionico") ||
-                           nameLower.includes("ácido fórmico") || nameLower.includes("acido formico") ||
-                           nameLower.includes("ácido cítrico") || nameLower.includes("acido citrico");
-                });
-
-                if (isOrganicAcid) {
-                    unifiedOnu = `ONU 3265 LÍQUIDO CORROSIVO, ÁCIDO, ORGÂNICO, N.E. (${names})`;
-                } else {
-                    unifiedOnu = `ONU 3264 LÍQUIDO CORROSIVO, ÁCIDO, INORGÂNICO, N.E. (${names})`;
-                }
+                unifiedOnu = `ONU 3264 LÍQUIDO CORROSIVO, ÁCIDO, INORGÂNICO, N.E. (${names})`;
                 unifiedClass = "8";
             } else if (classesObj[6]) {
                 unifiedOnu = `ONU 2810 LÍQUIDO TÓXICO, ORGÂNICO, N.E. (${names})`;
@@ -1408,34 +1371,64 @@ async function searchPubChem(query) {
             }
         }
 
-        // Filtro Final para Ácidos Orgânicos puros/misturados
-        let isOrganicAcidFinal = currentMixture.some(m => {
-            const nameLower = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
-            return nameLower.includes("ácido acético") || nameLower.includes("acido acetico") ||
-                   nameLower.includes("ácido propiônico") || nameLower.includes("acido propionico") ||
-                   nameLower.includes("ácido fórmico") || nameLower.includes("acido formico") ||
-                   nameLower.includes("ácido cítrico") || nameLower.includes("acido citrico");
-        });
+        }
 
-        if (isOrganicAcidFinal) {
-            let hasRealToxicOrFlammable = currentMixture.some(m => {
-                const nameLower = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
-                const isOrganicAcid = nameLower.includes("ácido acético") || nameLower.includes("acido acetico") ||
-                                      nameLower.includes("ácido propiônico") || nameLower.includes("acido propionico") ||
-                                      nameLower.includes("ácido fórmico") || nameLower.includes("acido formico") ||
-                                      nameLower.includes("ácido cítrico") || nameLower.includes("acido citrico");
-                return !isOrganicAcid && ((m.produto.Risk_Class || "").includes("6.1") || (m.produto.Risk_Class || "").includes("3"));
-            });
+        // --- Integração do Módulo de Classificação de Ácidos (acidClassification.js) ---
+        if (window.acidClassification) {
+            let compoundNames = currentMixture.map(m => m.produto.Common_Name_PT || m.produto.Common_Name);
+            const families = compoundNames.map(window.acidClassification.detectChemicalFamily);
+            let hasOrganic = families.includes('organic');
+            let hasInorganic = families.includes('inorganic');
+            
+            // Só ativa o módulo de ácidos se houver ao menos um composto detectado como orgânico/inorgânico
+            if (hasOrganic || hasInorganic) {
+                // Monta hazardData compatível
+                let hazardData = {
+                    physicalState: 'liquid',
+                    hazardClasses: currentMixture.flatMap(m => [m.produto.Risk_Class]),
+                    pictograms: currentMixture.flatMap(m => m.produto.Pictograms_List || []),
+                    corrosive: sumCorrosive > 0 || currentMixture.some(m => (m.produto.Risk_Class || "").includes("8") || (m.produto.Pictograms_List || []).includes("ghs05_corrosivo")),
+                    hazardStatements: allH
+                };
 
-            if (!hasRealToxicOrFlammable) {
-                selectedPictograms.delete('ghs06_toxico');
-                selectedPictograms.delete('ghs02_inflamavel');
-                selectedPictograms.delete('ghs08_saude');
+                // Classifica via novo módulo
+                let result = window.acidClassification.classifyAndPictogram(compoundNames, hazardData);
                 
-                // Se só tem corrosão, não precisa de 'PERIGO' se não foi forçado, mas Corrosivo já põe perigo.
-                // Mas garantimos que a classe tóxica foi varrida
+                let unMap = {
+                    '3265': 'ONU 3265 LÍQUIDO CORROSIVO, ÁCIDO, ORGÂNICO, N.E.',
+                    '3264': 'ONU 3264 LÍQUIDO CORROSIVO, ÁCIDO, INORGÂNICO, N.E.',
+                    '2927': 'ONU 2927 LÍQUIDO TÓXICO, CORROSIVO, ORGÂNICO, N.E.',
+                    '2924': 'ONU 2924 LÍQUIDO INFLAMÁVEL, CORROSIVO, N.E.',
+                    '1760': 'ONU 1760 LÍQUIDO CORROSIVO, N.E.',
+                    '3082': 'ONU 3082 SUBSTÂNCIA QUE APRESENTA RISCO PARA O MEIO AMBIENTE, LÍQUIDA, N.E.'
+                };
+                
+                // Aplica as regras do módulo apenas se ele encontrou um ONU primário de ácido/corrosivo
+                if (result.unNumber !== '3082') {
+                    unifiedOnu = `${unMap[result.unNumber]} (${names})`;
+                    
+                    if (result.unNumber === '3265' || result.unNumber === '3264' || result.unNumber === '1760') {
+                        unifiedClass = "8";
+                        unifiedAdvertencia = "PERIGO";
+                    } else if (result.unNumber === '2927') {
+                        unifiedClass = "6.1, 8";
+                        unifiedAdvertencia = "PERIGO";
+                    } else if (result.unNumber === '2924') {
+                        unifiedClass = "3, 8";
+                        unifiedAdvertencia = "PERIGO";
+                    }
+                    
+                    selectedPictograms.clear();
+                    result.pictograms.forEach(p => {
+                        if (p === 'GHS05') selectedPictograms.add('ghs05_corrosivo');
+                        if (p === 'GHS06') selectedPictograms.add('ghs06_toxico');
+                        if (p === 'GHS02') selectedPictograms.add('ghs02_inflamavel');
+                        if (p === 'GHS07') selectedPictograms.add('ghs07_irritante');
+                    });
+                }
             }
         }
+        // --- Fim Integração ---
 
         document.getElementById('pdNome').textContent = unifiedName;
         document.getElementById('pdComposicao').textContent = unifiedComp;
