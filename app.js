@@ -899,8 +899,8 @@ async function searchPubChem(query) {
 
             if (onlineResult) {
                 onlineResult.Common_Name_PT = query.toUpperCase();
-                // Check if we already have it in combined to avoid exact duplicates
-                if (!combined.some(c => c.Common_Name.toUpperCase() === onlineResult.Common_Name_PT.toUpperCase())) {
+                // Check if we already have it in combined to avoid exact duplicates (only deduplicate against the built-in DB, allow personal DB matches to show alongside)
+                if (!combined.some(c => !c.isMyProduct && c.Common_Name.toUpperCase() === onlineResult.Common_Name_PT.toUpperCase())) {
                     renderResults([onlineResult], true, true);
                 }
                 return;
