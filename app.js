@@ -840,11 +840,17 @@ async function searchPubChem(query) {
                 meuProdutoData: p,
                 Pictograms_List: p.ghs_classes || []
             };
-            if(p.tipo === 'mistura' && p.observacoes) {
+            if(p.observacoes) {
                 try {
                     const parsedData = JSON.parse(p.observacoes);
-                    pObj.isMixture = true;
-                    pObj.mixtureData = parsedData;
+                    if (p.tipo === 'mistura') {
+                        pObj.isMixture = true;
+                        if (Array.isArray(parsedData)) {
+                            pObj.mixtureData = parsedData;
+                        } else {
+                            pObj.mixtureData = parsedData.mixtureData;
+                        }
+                    }
                 }catch(e){}
             }
             return pObj;
@@ -994,6 +1000,19 @@ async function searchPubChem(query) {
                                 });
                             }
                         }
+
+                        // Restaurar Frases H e P
+                        try {
+                            const parsedObs = JSON.parse(data.observacoes || '{}');
+                            if (!Array.isArray(parsedObs)) {
+                                if (parsedObs.frases_h && Array.isArray(parsedObs.frases_h)) {
+                                    document.getElementById('pdFrasesH').innerHTML = parsedObs.frases_h.map(f => `<li>${f}</li>`).join('');
+                                }
+                                if (parsedObs.frases_p && Array.isArray(parsedObs.frases_p)) {
+                                    document.getElementById('pdFrasesP').innerHTML = parsedObs.frases_p.map(f => `<li>${f}</li>`).join('');
+                                }
+                            }
+                        } catch(e) {}
                     }, 50); // Timeout para rodar logo após o updateMixtureDisplay
                 } else {
                     currentMyProductId = null;
@@ -1614,7 +1633,14 @@ async function searchPubChem(query) {
         if (!currentUser) return [];
         return myProductsCache.filter(p => p.tipo === 'mistura').map(p => {
             let data = [];
-            try { data = JSON.parse(p.observacoes || '[]'); }catch(e){}
+            try { 
+                const parsed = JSON.parse(p.observacoes || '[]'); 
+                if (Array.isArray(parsed)) {
+                    data = parsed;
+                } else if (parsed && parsed.mixtureData) {
+                    data = parsed.mixtureData;
+                }
+            }catch(e){}
             return {
                 id: p.id_supabase,
                 name: p.nome,
@@ -1693,6 +1719,15 @@ async function searchPubChem(query) {
                 }
             });
 
+            const frases_h = Array.from(document.getElementById('pdFrasesH').children).map(li => li.textContent);
+            const frases_p = Array.from(document.getElementById('pdFrasesP').children).map(li => li.textContent);
+
+            const payload_observacoes = {
+                mixtureData: currentMixture,
+                frases_h: frases_h,
+                frases_p: frases_p
+            };
+
             let error = null;
             if (currentMyProductId) {
                 // Atualiza um item existente do próprio usuário
@@ -1703,7 +1738,7 @@ async function searchPubChem(query) {
                     estado_fisico: estado_fisico,
                     incompatibilidade: incompatibilidade,
                     onu_number: onu_number,
-                    observacoes: JSON.stringify(currentMixture)
+                    observacoes: JSON.stringify(payload_observacoes)
                 }).eq('id', currentMyProductId);
                 error = res.error;
             } else {
@@ -1716,7 +1751,7 @@ async function searchPubChem(query) {
                     estado_fisico: estado_fisico,
                     incompatibilidade: incompatibilidade,
                     onu_number: onu_number,
-                    observacoes: JSON.stringify(currentMixture)
+                    observacoes: JSON.stringify(payload_observacoes)
                 }]);
                 error = res.error;
             }
