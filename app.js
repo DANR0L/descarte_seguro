@@ -815,23 +815,21 @@ async function searchPubChem(query) {
 
     searchInput.addEventListener('input', (e) => {
         clearTimeout(searchTimeout);
-        const query = e.target.value.toLowerCase().trim();
-        searchResults.innerHTML = '';
-        if (query.length < 2) { searchResults.classList.remove('active'); return; }
+        const query = e.target.value.trim();
+        const queryNorm = query.toLowerCase();
 
-        const queryNorm = query.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (query.length === 0) {
+            searchResults.classList.remove('active');
+            return;
+        }
 
-        const filtered = db.filter(p => {
-            const cn = p.Common_Name ? p.Common_Name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
-            const iupac = p.IUPAC_Name ? p.IUPAC_Name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
-            return cn.includes(queryNorm) || (p.CAS_Number && p.CAS_Number.includes(queryNorm)) || iupac.includes(queryNorm);
-        });
-
+        // Primeiro procura no banco interno unificado (db hardcoded + meu banco)
+        let filtered = db.filter(p => 
+            p.Common_Name.toLowerCase().includes(queryNorm) || 
+            (p.CAS_Number && p.CAS_Number.includes(queryNorm))
+        ).slice(0, 5); // Limit to 5 local matches
         
-        const myFiltered = myProductsCache.filter(p => {
-            const cn = p.nome ? p.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
-            return cn.includes(queryNorm);
-        }).map(p => {
+        let myFiltered = myProductsCache.filter(p => p.nome.toLowerCase().includes(queryNorm)).map(p => {
             let pObj = {
                 Common_Name: p.nome,
                 Common_Name_PT: p.nome,
@@ -854,79 +852,100 @@ async function searchPubChem(query) {
 
         const combined = [...myFiltered, ...filtered];
         if (combined.length > 0) {
-            renderResults(combined);
-
+            renderResults(combined, false, false);
         } else {
-            searchResults.innerHTML = '<div class="result-item" style="color: #666;"><i class="fas fa-spinner fa-spin"></i> Buscando sugestões online...</div>';
+            searchResults.innerHTML = '<div class="result-item loading-online" style="color: #666;"><i class="fas fa-spinner fa-spin"></i> Buscando sugestões online...</div>';
             searchResults.classList.add('active');
+        }
+
+        searchTimeout = setTimeout(async () => {
+            if (combined.length > 0) {
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'result-item loading-online';
+                loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando online...';
+                searchResults.appendChild(loadingDiv);
+            } else {
+                searchResults.innerHTML = '<div class="result-item loading-online" style="color: #666;"><i class="fas fa-spinner fa-spin"></i> Buscando correspondência exata...</div>';
+            }
             
-            searchTimeout = setTimeout(async () => {
-                searchResults.innerHTML = '<div class="result-item" style="color: #666;"><i class="fas fa-spinner fa-spin"></i> Buscando correspondência exata...</div>';
-                
-                // 1. Tenta busca exata no PubChem (que já possui muitos sinônimos em Português)
-                let onlineResult = await searchPubChem(query);
-                let searchWord = queryNorm;
+            // 1. Tenta busca exata no PubChem (que já possui muitos sinônimos em Português)
+            let onlineResult = await searchPubChem(query);
+            let searchWord = queryNorm;
 
-                // 2. Se falhar, tenta traduzir e buscar exato
-                if (!onlineResult) {
-                    searchResults.innerHTML = '<div class="result-item" style="color: #666;"><i class="fas fa-spinner fa-spin"></i> Traduzindo termo para busca internacional...</div>';
-                    try {
-                        const trRes = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=en&dt=t&q=${encodeURIComponent(query)}`);
-                        if (trRes.ok) {
-                            const trData = await trRes.json();
-                            if (trData && trData[0] && trData[0][0] && trData[0][0][0]) {
-                                searchWord = trData[0][0][0].toLowerCase();
-                                onlineResult = await searchPubChem(searchWord);
-                            }
-                        }
-                    } catch(e) { console.warn("Erro ao traduzir busca", e); }
-                }
-
-                if (onlineResult) {
-                    onlineResult.Common_Name_PT = query.toUpperCase();
-                    renderResults([onlineResult], true);
-                    return;
-                }
-
-                // 3. Se tudo falhar, exibe autocomplete para o termo traduzido
-                searchResults.innerHTML = '<div class="result-item" style="color: #666;"><i class="fas fa-spinner fa-spin"></i> Buscando sugestões online...</div>';
+            // 2. Se falhar, tenta traduzir e buscar exato
+            if (!onlineResult) {
+                const loader = searchResults.querySelector('.loading-online');
+                if(loader) loader.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traduzindo termo para busca internacional...';
                 try {
-                    const autoRes = await fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/autocomplete/compound/${encodeURIComponent(searchWord)}/json?limit=6`);
-                    if (autoRes.ok) {
-                        const autoData = await autoRes.json();
-                        const terms = autoData.dictionary_terms?.compound;
-                        if (terms && terms.length > 0) {
-                            searchResults.innerHTML = '';
-                            terms.forEach(term => {
-                                const div = document.createElement('div');
-                                div.className = 'result-item';
-                                div.innerHTML = `<strong>${term}</strong> <span style="color: #00875F; font-size: 0.8em; float: right;">[Sugestão PubChem]</span>`;
-                                div.addEventListener('click', async (event) => {
-                                    event.stopPropagation();
-                                    searchInput.value = term;
-                                    searchResults.innerHTML = '<div class="result-item" style="color: #666;"><i class="fas fa-spinner fa-spin"></i> Baixando ficha química e GHS...</div>';
-                                    const clickResult = await searchPubChem(term);
-                                    if (clickResult) {
-                                        clickResult.Common_Name_PT = query.toUpperCase();
-                                        selectProduct(clickResult);
-                                    } else {
-                                        searchResults.innerHTML = '<div class="result-item" style="color: #E3000F;">Erro ao processar dados GHS deste produto.</div>';
-                                    }
-                                });
-                                searchResults.appendChild(div);
-                            });
-                            return; // Wait for user click
+                    const trRes = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=en&dt=t&q=${encodeURIComponent(query)}`);
+                    if (trRes.ok) {
+                        const trData = await trRes.json();
+                        if (trData && trData[0] && trData[0][0] && trData[0][0][0]) {
+                            searchWord = trData[0][0][0].toLowerCase();
+                            onlineResult = await searchPubChem(searchWord);
                         }
                     }
-                } catch(e) { console.error("Autocomplete error", e); }
-                
+                } catch(e) { console.warn("Erro ao traduzir busca", e); }
+            }
+
+            const loader = searchResults.querySelector('.loading-online');
+            if(loader) loader.remove();
+
+            if (onlineResult) {
+                onlineResult.Common_Name_PT = query.toUpperCase();
+                // Check if we already have it in combined to avoid exact duplicates
+                if (!combined.some(c => c.Common_Name.toUpperCase() === onlineResult.Common_Name_PT.toUpperCase())) {
+                    renderResults([onlineResult], true, true);
+                }
+                return;
+            }
+
+            // 3. Se tudo falhar, exibe autocomplete para o termo traduzido
+            const autoLoader = document.createElement('div');
+            autoLoader.className = 'result-item loading-online';
+            autoLoader.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando sugestões online...';
+            searchResults.appendChild(autoLoader);
+
+            try {
+                const autoRes = await fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/autocomplete/compound/${encodeURIComponent(searchWord)}/json?limit=6`);
+                if (autoRes.ok) {
+                    const autoData = await autoRes.json();
+                    const terms = autoData.dictionary_terms?.compound;
+                    autoLoader.remove();
+                    if (terms && terms.length > 0) {
+                        // Se for append, não apaga o innerHTML
+                        if (combined.length === 0) searchResults.innerHTML = '';
+                        terms.forEach(term => {
+                            const div = document.createElement('div');
+                            div.className = 'result-item';
+                            div.innerHTML = `<strong>${term}</strong> <span style="color: #00875F; font-size: 0.8em; float: right;">[Sugestão PubChem]</span>`;
+                            div.addEventListener('click', async (event) => {
+                                event.stopPropagation();
+                                searchInput.value = term;
+                                searchResults.innerHTML = '<div class="result-item" style="color: #666;"><i class="fas fa-spinner fa-spin"></i> Baixando ficha química e GHS...</div>';
+                                const clickResult = await searchPubChem(term);
+                                if (clickResult) {
+                                    clickResult.Common_Name_PT = query.toUpperCase();
+                                    selectProduct(clickResult);
+                                } else {
+                                    searchResults.innerHTML = '<div class="result-item" style="color: #E3000F;">Erro ao processar dados GHS deste produto.</div>';
+                                }
+                            });
+                            searchResults.appendChild(div);
+                        });
+                        return; // Wait for user click
+                    }
+                }
+            } catch(e) { console.error("Autocomplete error", e); }
+            
+            if (combined.length === 0) {
                 searchResults.innerHTML = '<div class="result-item" style="color: #E3000F;">Nenhum resultado encontrado (Local ou PubChem).</div>';
-            }, 500); // 500ms debounce
-        }
+            }
+        }, 500); // 500ms debounce
     });
 
-    function renderResults(list, isOnline = false) {
-        searchResults.innerHTML = '';
+    function renderResults(list, isOnline = false, append = false) {
+        if (!append) searchResults.innerHTML = '';
         list.forEach(p => {
             const div = document.createElement('div');
             div.className = 'result-item';
