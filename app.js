@@ -1,4 +1,4 @@
-﻿
+
 
 const ghsSvgs = {
     ghs02_inflamavel: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="50" width="50" height="50" fill="white" stroke="#E3000F" stroke-width="6" transform="rotate(-45 50 50)" stroke-linejoin="round"/><path d="M50 20 Q40 35 45 50 Q30 55 45 75 Q60 75 60 60 Q70 55 55 40 Q65 45 50 20 Z" fill="black"/><rect x="30" y="77" width="40" height="3" fill="black"/></svg>`,
@@ -14,6 +14,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 let supabaseClient;
 let myProductsCache = [];
+let currentMyProductId = null;
 try {
     if (!window.supabase) {
         alert("ERRO CRÍTICO: O script do Supabase não foi carregado pela internet! Verifique sua conexão ou se há bloqueios no navegador.");
@@ -944,6 +945,10 @@ async function searchPubChem(query) {
 
                 // Restaurar edições personalizadas (Nome, ONU, Estado, Incompatibilidade e Pictogramas)
                 if(p.isMyProduct) {
+                    currentMyProductId = p.meuProdutoData.id_supabase;
+                    const delBtn = document.getElementById('deletePersonalDbBtn');
+                    if(delBtn) delBtn.classList.remove('hidden');
+
                     setTimeout(() => {
                         const data = p.meuProdutoData;
                         if(data.nome) document.getElementById('pdNome').textContent = data.nome;
@@ -971,6 +976,10 @@ async function searchPubChem(query) {
                             }
                         }
                     }, 50); // Timeout para rodar logo após o updateMixtureDisplay
+                } else {
+                    currentMyProductId = null;
+                    const delBtn = document.getElementById('deletePersonalDbBtn');
+                    if(delBtn) delBtn.classList.add('hidden');
                 }
 
                 searchInput.value = '';
@@ -1614,6 +1623,31 @@ async function searchPubChem(query) {
 
 
     
+    const deletePersonalDbBtn = document.getElementById('deletePersonalDbBtn');
+    if(deletePersonalDbBtn) {
+        deletePersonalDbBtn.addEventListener('click', async () => {
+            if(!currentMyProductId || !currentUser || !supabaseClient) return;
+            if(!confirm("Tem certeza que deseja apagar este item do seu banco de dados?")) return;
+            
+            const originalText = deletePersonalDbBtn.innerHTML;
+            deletePersonalDbBtn.textContent = "Excluindo...";
+            
+            const { error } = await supabaseClient.from('meus_produtos').delete().eq('id', currentMyProductId);
+            
+            deletePersonalDbBtn.innerHTML = originalText;
+            
+            if(error) {
+                alert("Erro ao excluir: " + error.message);
+            } else {
+                alert("Item excluído com sucesso!");
+                await loadMyProducts();
+                document.getElementById('productDetails').classList.add('hidden');
+                currentMixture = [];
+                updateMixtureDisplay();
+            }
+        });
+    }
+
     const savePersonalDbBtn = document.getElementById('savePersonalDbBtn');
     if(savePersonalDbBtn) {
         savePersonalDbBtn.addEventListener('click', async () => {
