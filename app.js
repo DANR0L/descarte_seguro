@@ -1189,7 +1189,28 @@ async function searchPubChem(query) {
                 if (cls.includes("9")) classesObj[9] = true;
             });
             
-            if (classesObj[1] || classesObj[5.2] || classesObj[7]) {
+            let isGasMixture = currentMixture.every(m => {
+                const cls = m.produto.Risk_Class || "";
+                const nameLower = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
+                const isGasName = nameLower.includes("oxigênio") || nameLower.includes("oxigenio") || 
+                                  nameLower.includes("carbono") || nameLower.includes("nitrogênio") || 
+                                  nameLower.includes("nitrogenio") || nameLower.includes("gás") || nameLower.includes("gas");
+                return cls.startsWith("2") || isGasName;
+            });
+
+            if (isGasMixture) {
+                let oxygenComponent = currentMixture.find(m => {
+                    const name = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
+                    return name.includes("oxigênio") || name.includes("oxigenio") || name === "o2";
+                });
+                if (oxygenComponent && parseFloat(oxygenComponent.percentage) > 23.5) {
+                    unifiedOnu = `ONU 1072 OXIGÊNIO COMPRIMIDO (${names})`;
+                    unifiedClass = "2.2, 5.1";
+                } else {
+                    unifiedOnu = `ONU 1956 GÁS COMPRIMIDO, N.E. (${names})`;
+                    unifiedClass = "2";
+                }
+            } else if (classesObj[1] || classesObj[5.2] || classesObj[7]) {
                 unifiedOnu = `ONU CLASSE ESPECIAL (VERIFICAR FICHA DE EMERGÊNCIA) (${names})`;
                 unifiedClass = "1, 5.2 ou 7";
             } else if (classesObj[3] && classesObj[6] && classesObj[8]) {
@@ -1313,6 +1334,40 @@ async function searchPubChem(query) {
         }
         if (selectedPictograms.has('ghs05_corrosivo')) {
             selectedPictograms.delete('ghs07_irritante');
+        }
+
+        // Filtro de Gases e Comburentes
+        let isGasMixtureFinal = currentMixture.every(m => {
+            const cls = m.produto.Risk_Class || "";
+            const nameLower = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
+            return cls.startsWith("2") || nameLower.includes("oxigênio") || nameLower.includes("oxigenio") || 
+                   nameLower.includes("carbono") || nameLower.includes("nitrogênio") || nameLower.includes("nitrogenio") || 
+                   nameLower.includes("gás") || nameLower.includes("gas");
+        });
+        
+        if (isGasMixtureFinal) {
+            let hasRealToxic = currentMixture.some(m => {
+                const name = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
+                const isGasComponent = name.includes("oxig") || name.includes("carbono") || name.includes("nitrog") || name.includes("gás") || name === "o2";
+                return !isGasComponent && ((m.produto.Risk_Class || "").includes("6.1") || (m.produto.Pictograms_List || []).includes("ghs06_toxico"));
+            });
+
+            if (!hasRealToxic) {
+                selectedPictograms.delete('ghs06_toxico');
+                selectedPictograms.delete('ghs08_saude');
+                hasDanger = false;
+                unifiedAdvertencia = "ATENÇÃO";
+            }
+            
+            selectedPictograms.add('ghs04_gas');
+            
+            let oxygenComponent = currentMixture.find(m => {
+                const name = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
+                return name.includes("oxigênio") || name.includes("oxigenio") || name === "o2";
+            });
+            if (oxygenComponent && parseFloat(oxygenComponent.percentage) > 23.5) {
+                selectedPictograms.add('ghs03_comburente');
+            }
         }
 
         document.getElementById('pdNome').textContent = unifiedName;
