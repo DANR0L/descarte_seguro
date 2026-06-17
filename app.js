@@ -938,11 +938,43 @@ async function searchPubChem(query) {
                 if(p.isMixture && p.mixtureData) {
                     currentMixture = p.mixtureData.map(item => ({...item, id: Date.now() + Math.random()}));
                     updateMixtureDisplay();
-                    searchInput.value = '';
-                    searchResults.classList.remove('active');
                 } else {
                     selectProduct(p);
                 }
+
+                // Restaurar edições personalizadas (Nome, ONU, Estado, Incompatibilidade e Pictogramas)
+                if(p.isMyProduct) {
+                    setTimeout(() => {
+                        const data = p.meuProdutoData;
+                        if(data.nome) document.getElementById('pdNome').textContent = data.nome;
+                        if(data.onu_number) document.getElementById('pdOnu').textContent = (data.onu_number.toUpperCase().startsWith('ONU') ? '' : 'ONU: ') + data.onu_number;
+                        if(data.estado_fisico && document.getElementById('pdEstado')) document.getElementById('pdEstado').value = data.estado_fisico;
+                        if(data.incompatibilidade && document.getElementById('pdIncompatibilidade')) document.getElementById('pdIncompatibilidade').value = data.incompatibilidade;
+                        
+                        // Restaurar Pictogramas
+                        if(data.ghs_classes && Array.isArray(data.ghs_classes)) {
+                            selectedPictograms.clear();
+                            data.ghs_classes.forEach(cls => selectedPictograms.add(cls));
+                            
+                            // Re-renderizar UI dos pictogramas
+                            const picContainer = document.getElementById('pdPictogramas');
+                            if (picContainer) {
+                                picContainer.querySelectorAll('.picto-item').forEach(item => {
+                                    const title = item.title;
+                                    const ghsObj = allGhs.find(g => g.label === title);
+                                    if(ghsObj && data.ghs_classes.includes(ghsObj.id)) {
+                                        item.classList.add('active');
+                                    } else {
+                                        item.classList.remove('active');
+                                    }
+                                });
+                            }
+                        }
+                    }, 50); // Timeout para rodar logo após o updateMixtureDisplay
+                }
+
+                searchInput.value = '';
+                searchResults.classList.remove('active');
             });
             searchResults.appendChild(div);
         });
