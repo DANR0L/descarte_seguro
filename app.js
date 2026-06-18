@@ -1151,9 +1151,6 @@ async function searchPubChem(query) {
 
         checkIncompatibility();
         calculateUnifiedLabel();
-        
-        // Dispara classificação automática da Adapta ONE com debounce
-        scheduleAdaptaClassification();
     }
 
     function calculateUnifiedLabel() {
@@ -1335,8 +1332,6 @@ async function searchPubChem(query) {
             selectedPictograms.add('ghs05_corrosivo');
             selectedPictograms.add('ghs08_saude');
         }
-
-        // Delegação GHS: A restrição local do GHS07 foi removida para delegar a decisão à Adapta ONE.
 
         // Filtro de Gases e Comburentes
         let isGasMixtureFinal = currentMixture.every(m => {
@@ -2024,136 +2019,7 @@ async function searchPubChem(query) {
         });
     }
 
-    // === INTEGRAÇÃO AUTOMÁTICA ADAPTA ONE (MERGE - nunca apaga dados do PubChem) ===
-    let _adaptaDebounceTimer = null;
-    
-    function scheduleAdaptaClassification() {
-        // Debounce: aguarda 500ms de "silêncio" antes de chamar a IA,
-        // evitando múltiplas chamadas quando o usuário digita percentuais.
-        clearTimeout(_adaptaDebounceTimer);
-        _adaptaDebounceTimer = setTimeout(() => {
-            applyAdaptaClassification();
-        }, 500);
-    }
 
-    async function applyAdaptaClassification() {
-        if (currentMixture.length === 0) return;
-        if (!window.fetchGHSClassification) return;
-
-        try {
-            console.log("[Adapta ONE] Classificação automática iniciada...");
-            const aiResult = await window.fetchGHSClassification(currentMixture);
-            
-            if (!aiResult) {
-                console.warn("[Adapta ONE] Merge cancelado devido a resposta vazia/nula da IA.");
-                return;
-            }
-
-            // === MERGE: ONU (só sobrescreve se vazio ou genérico) ===
-            if (aiResult.un_number && aiResult.un_number !== "N/D") {
-                const pdOnu = document.getElementById('pdOnu');
-                const currentOnu = (pdOnu.textContent || "").trim();
-                if (!currentOnu || currentOnu === "ONU: N/D" || currentOnu === "ONU: 1234") {
-                    pdOnu.textContent = aiResult.un_number.toUpperCase().startsWith("ONU") ? aiResult.un_number : `ONU: ${aiResult.un_number}`;
-                }
-            }
-            
-            // === MERGE: Nome (só sobrescreve se placeholder) ===
-            if (aiResult.shipping_name) {
-                const pdNome = document.getElementById('pdNome');
-                const currentName = (pdNome.textContent || "").trim();
-                if (!currentName || currentName === "Nome do Produto") {
-                    pdNome.textContent = aiResult.shipping_name;
-                }
-            }
-            
-            // === MERGE: Classe de Risco ===
-            if (aiResult.risk_class) {
-                const pdClasse = document.getElementById('pdClasse');
-                if (pdClasse) {
-                    const cur = (pdClasse.textContent || "").trim();
-                    if (!cur || cur === "N/D") pdClasse.textContent = aiResult.risk_class;
-                }
-            }
-            
-            // === MERGE: Palavra de advertência (PERIGO > ATENÇÃO) ===
-            if (aiResult.signal_word) {
-                const pdAdv = document.getElementById('pdAdvertencia');
-                if (pdAdv) {
-                    const curAdv = (pdAdv.textContent || "").trim().toUpperCase();
-                    if (!curAdv || (aiResult.signal_word.toUpperCase() === "PERIGO" && curAdv !== "PERIGO")) {
-                        pdAdv.textContent = aiResult.signal_word;
-                    }
-                }
-            }
-            
-            // === MERGE: Frases H — unir sem duplicar ===
-            const pdFrasesH = document.getElementById('pdFrasesH');
-            if (aiResult.h_phrases && Array.isArray(aiResult.h_phrases) && pdFrasesH) {
-                const existingH = Array.from(pdFrasesH.children).map(li => li.textContent.trim());
-                const mergedH = [...existingH];
-                aiResult.h_phrases.forEach(f => {
-                    const code = f.split(/[\s:\u2013-]/)[0];
-                    if (!mergedH.some(ex => ex.startsWith(code))) mergedH.push(f);
-                });
-                pdFrasesH.innerHTML = mergedH.map(f => `<li>${f}</li>`).join('');
-            }
-            
-            // === MERGE: Frases P — unir sem duplicar ===
-            const pdFrasesP = document.getElementById('pdFrasesP');
-            if (aiResult.p_phrases && Array.isArray(aiResult.p_phrases) && pdFrasesP) {
-                const existingP = Array.from(pdFrasesP.children).map(li => li.textContent.trim());
-                const mergedP = [...existingP];
-                aiResult.p_phrases.forEach(f => {
-                    const code = f.split(/[\s:\u2013-]/)[0];
-                    if (!mergedP.some(ex => ex.startsWith(code))) mergedP.push(f);
-                });
-                pdFrasesP.innerHTML = mergedP.map(f => `<li>${f}</li>`).join('');
-            }
-            
-            // === MERGE: Pictogramas — ADICIONAR sem remover os existentes ===
-            if (aiResult.pictograms && Array.isArray(aiResult.pictograms)) {
-                const mapGhsToId = {
-                    'GHS01': 'ghs01_explosivo',
-                    'GHS02': 'ghs02_inflamavel',
-                    'GHS03': 'ghs03_oxidante',
-                    'GHS04': 'ghs04_gas',
-                    'GHS05': 'ghs05_corrosivo',
-                    'GHS06': 'ghs06_toxico',
-                    'GHS07': 'ghs07_irritante',
-                    'GHS08': 'ghs08_saude',
-                    'GHS09': 'ghs09_meioambiente'
-                };
-
-                aiResult.pictograms.forEach(p => {
-                    const cleanP = p.trim().toUpperCase();
-                    if (mapGhsToId[cleanP]) {
-                        selectedPictograms.add(mapGhsToId[cleanP]);
-                    } else {
-                        // Tenta descobrir o ID se a IA mandar já no formato interno
-                        const found = allGhs.find(g => g.id === cleanP.toLowerCase());
-                        if (found) selectedPictograms.add(found.id);
-                    }
-                });
-                
-                // Delegação GHS: A inteligência da Adapta ONE agora decide a redundância do GHS07
-
-                const picContainer = document.getElementById('pdPictogramas');
-                if (picContainer) {
-                    picContainer.querySelectorAll('.picto-item').forEach(item => {
-                        const ghsObj = allGhs.find(g => g.label === item.title);
-                        if (ghsObj && selectedPictograms.has(ghsObj.id)) {
-                            item.classList.add('active');
-                        }
-                        // NÃO remove 'active' dos que já estavam ligados pelo PubChem
-                    });
-                }
-            }
-            
-            console.log("[Adapta ONE] Classificação automática aplicada com sucesso (merge).");
-        } catch (e) {
-            console.warn("[Adapta ONE] Classificação automática falhou (sem impacto na tela):", e.message);
-        }
     }
 
 });
