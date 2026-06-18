@@ -186,10 +186,16 @@
                 <div class="details-header" style="flex-direction: column; align-items: flex-start; gap: 0.5rem;">
                     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
                         <h2>🧪 Resíduos na Mistura</h2>
-                        <button id="saveMixtureBtn" class="secondary-btn" style="font-size: 0.8rem; padding: 0.3rem 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/></svg>
-                            Salvar Receita
-                        </button>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button id="classifyMixtureBtn" class="primary-btn" style="font-size: 0.8rem; padding: 0.3rem 0.6rem; display: flex; align-items: center; gap: 0.4rem; background: var(--warning); border-color: var(--warning); color: black;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2-9 5 18 3-9h4"/></svg>
+                                Classificar Mistura
+                            </button>
+                            <button id="saveMixtureBtn" class="secondary-btn" disabled style="font-size: 0.8rem; padding: 0.3rem 0.6rem; display: flex; align-items: center; gap: 0.4rem; opacity: 0.5; cursor: not-allowed;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/></svg>
+                                Salvar Receita
+                            </button>
+                        </div>
                     </div>
                     <p style="font-size: 0.9rem; color: var(--text-secondary);">Defina a concentração (%) de cada resíduo. A etiqueta final unificará os riscos (Regra de Aditividade GHS).</p>
                 </div>
@@ -200,6 +206,17 @@
 
                 <div id="mixtureList" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
                     <!-- Itens da mistura serão injetados aqui -->
+                </div>
+
+                <!-- Seção de Resultado da Classificação -->
+                <div id="classificationResultSection" class="hidden" style="margin-top: 1rem; padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;">
+                    <h3 style="margin-top: 0; margin-bottom: 0.5rem; font-size: 1rem; display: flex; align-items: center; gap: 0.4rem;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        Resultado da Classificação
+                    </h3>
+                    <div id="classificationDetails" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-secondary);">
+                        <!-- Conteúdo renderizado pelo app.js -->
+                    </div>
                 </div>
             </section>
 
@@ -377,6 +394,6 @@
     <!-- Custom Scripts -->
     <script src="acidClassification.js"></script>
     <script src="database.js"></script>
-    <script src="app.js"></script>
+    <script src="app.js?v=7"></script>
 </body>
 </html>

@@ -13,8 +13,10 @@ const SUPABASE_URL = 'https://rvbfockxvjahkzaeizie.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2YmZvY2t4dmphaGt6YWVpemllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzOTkxMjcsImV4cCI6MjA5Njk3NTEyN30.OquFrwdIiyjXIE6vwhpm2mVxyviQzSoiQbFFz0rAhsc';
 
 let supabaseClient;
-let myProductsCache = [];
-let currentMyProductId = null;
+let myProductsCache = [];       // Itens do banco pessoal (Supabase 'meus_produtos', s/ subtipo receita)
+let mySavedRecipesCache = [];   // Itens de Receitas (Supabase 'meus_produtos', c/ subtipo receita)
+let currentMyProductId = null;  // ID do item do banco pessoal selecionado
+let currentRecipeId = null;     // ID da receita carregada (nuvem, mas independente do banco)
 try {
     if (!window.supabase) {
         alert("ERRO CRÍTICO: O script do Supabase não foi carregado pela internet! Verifique sua conexão ou se há bloqueios no navegador.");
@@ -99,12 +101,24 @@ async function checkSession() {
 }
 
 
+// Carrega tudo do Supabase (Catálogo e Receitas) e separa em duas gavetas independentes na memória
 async function loadMyProducts() {
     if (!currentUser || !supabaseClient) return;
     try {
         const { data, error } = await supabaseClient.from('meus_produtos').select('*').eq('user_id', currentUser.id);
         if (data) {
-            myProductsCache = data.map(d => ({
+            
+            // Gaveta 1: Catálogo (Meu Banco) - Não pode ter formato de receita
+            const filteredCatalog = data.filter(d => {
+                try {
+                    const obs = JSON.parse(d.observacoes || '{}');
+                    if (obs && obs.subtipo === 'receita') return false; 
+                    if (Array.isArray(obs)) return false; 
+                } catch(e) {}
+                return true;
+            });
+
+            myProductsCache = filteredCatalog.map(d => ({
                 id_supabase: d.id,
                 nome: d.nome,
                 tipo: d.tipo,
@@ -114,11 +128,35 @@ async function loadMyProducts() {
                 observacoes: d.observacoes,
                 onu_number: d.onu_number
             }));
+
+            // Gaveta 2: Receitas Salvas - DEVE ter formato de receita
+            const filteredRecipes = data.filter(d => {
+                try {
+                    const obs = JSON.parse(d.observacoes || '{}');
+                    if (obs && obs.subtipo === 'receita') return true;
+                    if (Array.isArray(obs)) return true;
+                } catch(e) {}
+                return false;
+            });
+
+            mySavedRecipesCache = filteredRecipes.map(p => {
+                const obsParsed = JSON.parse(p.observacoes || '{}');
+                const mixtureData = Array.isArray(obsParsed) ? obsParsed : obsParsed.mixtureData;
+                return {
+                    id: p.id, // ID direto do Supabase
+                    name: p.nome,
+                    data: mixtureData,
+                    savedAt: p.created_at || null
+                };
+            });
+
+            console.log(`[Sync] ${myProductsCache.length} itens no Catálogo (Meu Banco) | ${mySavedRecipesCache.length} Receitas Salvas.`);
         }
     } catch (e) {
         console.error('Erro loadMyProducts', e);
     }
 }
+
 
 async function loadUserProfile() {
     if (!currentUser || !supabaseClient) return;
@@ -840,7 +878,13 @@ async function searchPubChem(query) {
                 Common_Name_PT: p.nome,
                 H_Phrases: [],
                 P_Phrases: [],
-                CAS_Number: p.tipo === 'residuo' ? 'Meu Banco' : 'Minha Mistura',
+                CAS_Number: (() => {
+                    try {
+                        const obs = JSON.parse(p.observacoes || '{}');
+                        const hasMultiple = obs.mixtureData && Array.isArray(obs.mixtureData) && obs.mixtureData.length > 1;
+                        return hasMultiple ? 'Meu Banco (Mistura)' : 'Meu Banco';
+                    } catch(e) { return 'Meu Banco'; }
+                })(),
                 isMyProduct: true,
                 meuProdutoData: p,
                 Pictograms_List: p.ghs_classes || []
@@ -1123,6 +1167,18 @@ async function searchPubChem(query) {
         mixtureSection.classList.remove('hidden');
         productDetails.classList.remove('hidden');
 
+        // Reset classification state
+        const saveMixtureBtn = document.getElementById('saveMixtureBtn');
+        const classifyResultSection = document.getElementById('classificationResultSection');
+        if (saveMixtureBtn) {
+            saveMixtureBtn.disabled = true;
+            saveMixtureBtn.style.opacity = '0.5';
+            saveMixtureBtn.style.cursor = 'not-allowed';
+        }
+        if (classifyResultSection) {
+            classifyResultSection.classList.add('hidden');
+        }
+
         // Renderiza a lista do carrinho
         mixtureList.innerHTML = '';
         currentMixture.forEach(m => {
@@ -1259,7 +1315,6 @@ async function searchPubChem(query) {
         let hasDanger = currentMixture.some(m => (m.produto.Warning_Word || "").toUpperCase() === "PERIGO");
         let unifiedAdvertencia = hasDanger ? "PERIGO" : "ATENÇÃO";
 
-        // Regra de Aditividade GHS (Exemplo: Corrosão > 10%)
         let sumCorrosive = 0;
         let sumToxic = 0;
         let hasStrongAcid = false;
@@ -1275,11 +1330,9 @@ async function searchPubChem(query) {
             if (p.H_Phrases) allH = allH.concat(p.H_Phrases);
             if (p.P_Phrases) allP = allP.concat(p.P_Phrases);
 
-            // Verifica se é corrosivo para somar (busca por H314 ou GHS05)
             if (p.Pictograms_List && p.Pictograms_List.includes('ghs05_corrosivo')) sumCorrosive += perc;
             if (p.Pictograms_List && p.Pictograms_List.includes('ghs06_toxico')) sumToxic += perc;
 
-            // Trava de Ácidos Fortes
             const nameLower = (p.Common_Name_PT || p.Common_Name || "").toLowerCase();
             if (nameLower.includes("ácido nítrico") || nameLower.includes("acido nitrico") ||
                 nameLower.includes("ácido sulfúrico") || nameLower.includes("acido sulfurico") ||
@@ -1289,7 +1342,6 @@ async function searchPubChem(query) {
             }
         });
 
-        // Trava de Ácidos Fortes: injeta obrigatoriamente H290 e H331
         if (hasStrongAcid) {
             selectedPictograms.add('ghs05_corrosivo');
             selectedPictograms.add('ghs06_toxico');
@@ -1299,7 +1351,6 @@ async function searchPubChem(query) {
             if (!allH.some(h => h.toLowerCase().includes("h331"))) allH.push("H331 - Tóxico se inalado.");
         }
 
-        // Aditividade: Se soma corrosiva > 10%, força Corrosivo
         if (sumCorrosive > 10) {
             selectedPictograms.add('ghs05_corrosivo');
             if (!allH.some(h => h.includes("H314"))) allH.push("H314 - Provoca queimadura severa à pele e dano aos olhos.");
@@ -1307,14 +1358,12 @@ async function searchPubChem(query) {
             unifiedAdvertencia = "PERIGO";
         }
 
-        // Aditividade: Se soma tóxica > 1%, força Tóxico
         if (sumToxic > 1) {
             selectedPictograms.add('ghs06_toxico');
             hasDanger = true;
             unifiedAdvertencia = "PERIGO";
         }
         
-        // Upgrade de Toxicidade: Se algum componente for da Classe 6.1, dispara GHS06 e PERIGO
         let hasClass6 = currentMixture.some(m => {
             const cls = m.produto.Risk_Class || "";
             return cls.includes("6.1") || cls.includes("6");
@@ -1325,7 +1374,6 @@ async function searchPubChem(query) {
             unifiedAdvertencia = "PERIGO";
         }
 
-        // Se for UN 3286 (Triplo perigo), forçamos os 4 pictogramas essenciais para a mistura
         if (unifiedOnu && unifiedOnu.includes("3286")) {
             selectedPictograms.add('ghs02_inflamavel');
             selectedPictograms.add('ghs06_toxico');
@@ -1333,7 +1381,6 @@ async function searchPubChem(query) {
             selectedPictograms.add('ghs08_saude');
         }
 
-        // Filtro de Gases e Comburentes
         let isGasMixtureFinal = currentMixture.every(m => {
             const cls = m.produto.Risk_Class || "";
             const nameLower = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
@@ -1367,63 +1414,6 @@ async function searchPubChem(query) {
             }
         }
 
-        // --- Integração do Módulo de Classificação de Ácidos (acidClassification.js) ---
-        if (window.acidClassification) {
-            let compoundNames = currentMixture.map(m => m.produto.Common_Name_PT || m.produto.Common_Name);
-            const families = compoundNames.map(window.acidClassification.detectChemicalFamily);
-            let hasOrganic = families.includes('organic');
-            let hasInorganic = families.includes('inorganic');
-            
-            // Só ativa o módulo de ácidos se houver ao menos um composto detectado como orgânico/inorgânico
-            if (hasOrganic || hasInorganic) {
-                // Monta hazardData compatível
-                let hazardData = {
-                    physicalState: 'liquid',
-                    hazardClasses: currentMixture.flatMap(m => [m.produto.Risk_Class]),
-                    pictograms: currentMixture.flatMap(m => m.produto.Pictograms_List || []),
-                    corrosive: sumCorrosive > 0 || currentMixture.some(m => (m.produto.Risk_Class || "").includes("8") || (m.produto.Pictograms_List || []).includes("ghs05_corrosivo")),
-                    hazardStatements: allH
-                };
-
-                // Classifica via novo módulo
-                let result = window.acidClassification.classifyAndPictogram(compoundNames, hazardData);
-                
-                let unMap = {
-                    '3265': 'ONU 3265 LÍQUIDO CORROSIVO, ÁCIDO, ORGÂNICO, N.E.',
-                    '3264': 'ONU 3264 LÍQUIDO CORROSIVO, ÁCIDO, INORGÂNICO, N.E.',
-                    '2927': 'ONU 2927 LÍQUIDO TÓXICO, CORROSIVO, ORGÂNICO, N.E.',
-                    '2924': 'ONU 2924 LÍQUIDO INFLAMÁVEL, CORROSIVO, N.E.',
-                    '1760': 'ONU 1760 LÍQUIDO CORROSIVO, N.E.',
-                    '3082': 'ONU 3082 SUBSTÂNCIA QUE APRESENTA RISCO PARA O MEIO AMBIENTE, LÍQUIDA, N.E.'
-                };
-                
-                // Aplica as regras do módulo apenas se ele encontrou um ONU primário de ácido/corrosivo
-                if (result.unNumber !== '3082') {
-                    unifiedOnu = `${unMap[result.unNumber]} (${names})`;
-                    
-                    if (result.unNumber === '3265' || result.unNumber === '3264' || result.unNumber === '1760') {
-                        unifiedClass = "8";
-                        unifiedAdvertencia = "PERIGO";
-                    } else if (result.unNumber === '2927') {
-                        unifiedClass = "6.1, 8";
-                        unifiedAdvertencia = "PERIGO";
-                    } else if (result.unNumber === '2924') {
-                        unifiedClass = "3, 8";
-                        unifiedAdvertencia = "PERIGO";
-                    }
-                    
-                    selectedPictograms.clear();
-                    result.pictograms.forEach(p => {
-                        if (p === 'GHS05') selectedPictograms.add('ghs05_corrosivo');
-                        if (p === 'GHS06') selectedPictograms.add('ghs06_toxico');
-                        if (p === 'GHS02') selectedPictograms.add('ghs02_inflamavel');
-                        if (p === 'GHS07') selectedPictograms.add('ghs07_irritante');
-                    });
-                }
-            }
-        }
-        // --- Fim Integração ---
-
         document.getElementById('pdNome').textContent = unifiedName;
         document.getElementById('pdComposicao').textContent = unifiedComp;
         let onuDisplay = unifiedOnu.toUpperCase().startsWith("ONU") ? unifiedOnu : `ONU: ${unifiedOnu}`;
@@ -1452,12 +1442,114 @@ async function searchPubChem(query) {
             picContainer.appendChild(div);
         });
 
-        // processPhrases já garante máximo de 6 e ordenação
         const displayH = processPhrases(allH, false);
         const displayP = processPhrases(allP, true);
         
         document.getElementById('pdFrasesH').innerHTML = displayH.map(f => `<li>${f}</li>`).join('');
         document.getElementById('pdFrasesP').innerHTML = displayP.map(f => `<li>${f}</li>`).join('');
+
+        // --- Integração com API /api/classify (motor de regras Vercel) ---
+        _callClassifyAPI();
+    }
+
+    // Mapeamento de código GHS da API (ex: "GHS02") para id interno do allGhs (ex: "ghs02_inflamavel")
+    const GHS_API_TO_LOCAL = {
+        'GHS01': 'ghs01_explosivo',
+        'GHS02': 'ghs02_inflamavel',
+        'GHS03': 'ghs03_oxidante',
+        'GHS04': 'ghs04_gas',
+        'GHS05': 'ghs05_corrosivo',
+        'GHS06': 'ghs06_toxico',
+        'GHS07': 'ghs07_irritante',
+        'GHS08': 'ghs08_saude',
+        'GHS09': 'ghs09_meioambiente'
+    };
+
+    async function _callClassifyAPI() {
+        try {
+            const substances = currentMixture.map(m => ({
+                name: m.produto.Common_Name_PT || m.produto.Common_Name,
+                fraction: parseFloat(m.percentage) || 0
+            }));
+
+            const response = await fetch('/api/classify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ substances })
+            });
+
+            if (!response.ok) {
+                console.warn('[classify API] Resposta não-OK:', response.status);
+                return;
+            }
+
+            const result = await response.json();
+            console.log('[classify API] Resultado:', result);
+
+            // ONU e Classe de Risco (da API têm precedência sobre lógica local)
+            if (result.un_number && result.un_number !== 'UN0000') {
+                const onuText = `ONU ${result.un_number} ${result.proper_shipping_name || ''}`.trim();
+                document.getElementById('pdOnu').textContent = onuText;
+            }
+            if (result.risk_class) {
+                document.getElementById('pdClasse').textContent = result.risk_class;
+            }
+
+            // Palavra de Advertência baseada em incompatibilidades
+            if (result.details && result.details.incompatibilities && result.details.incompatibilities.length > 0) {
+                const hasCritical = result.details.incompatibilities.some(i => i.severity === 'CRITICAL');
+                document.getElementById('pdAdvertencia').textContent = hasCritical ? 'PERIGO' : 'ATENÇÃO';
+            }
+
+            // Pictogramas: sobrescreve com os da API
+            if (result.pictograms && result.pictograms.length > 0) {
+                selectedPictograms.clear();
+                result.pictograms.forEach(ghsCode => {
+                    const localId = GHS_API_TO_LOCAL[ghsCode];
+                    if (localId) selectedPictograms.add(localId);
+                });
+                const picContainer = document.getElementById('pdPictogramas');
+                if (picContainer) {
+                    picContainer.querySelectorAll('.picto-item').forEach(item => {
+                        const ghsObj = allGhs.find(g => g.label === item.title);
+                        if (ghsObj) {
+                            if (selectedPictograms.has(ghsObj.id)) item.classList.add('active');
+                            else item.classList.remove('active');
+                        }
+                    });
+                }
+            }
+
+            // Frases H e P com textos resolvidos da API
+            if (result.details) {
+                if (result.details.h_phrases_texts && result.details.h_phrases_texts.length > 0) {
+                    document.getElementById('pdFrasesH').innerHTML = result.details.h_phrases_texts
+                        .slice(0, 6).map(h => `<li><strong>${h.code}</strong> – ${h.text}</li>`).join('');
+                }
+                if (result.details.p_phrases_texts && result.details.p_phrases_texts.length > 0) {
+                    document.getElementById('pdFrasesP').innerHTML = result.details.p_phrases_texts
+                        .slice(0, 6).map(p => `<li><strong>${p.code}</strong> – ${p.text}</li>`).join('');
+                }
+            }
+
+            // Alerta de segurança para incompatibilidades químicas
+            const alertBanner = document.getElementById('pdSafetyAlert');
+            const alertText = document.getElementById('pdSafetyAlertText');
+            if (alertBanner && alertText && result.safety_alert) {
+                const hasIncompatibility = result.details &&
+                    result.details.incompatibilities &&
+                    result.details.incompatibilities.length > 0;
+                if (hasIncompatibility) {
+                    alertText.textContent = result.safety_alert;
+                    alertBanner.style.display = 'block';
+                } else {
+                    alertBanner.style.display = 'none';
+                }
+            }
+
+        } catch (err) {
+            console.warn('[classify API] Falha ao contactar /api/classify. Usando classificação local.', err.message);
+        }
     }
 
     document.getElementById('printBtn').addEventListener('click', () => {
@@ -1723,48 +1815,22 @@ async function searchPubChem(query) {
 
     // --- Lógica de Receitas Salvas (Misturas Frequentes) ---
     const saveMixtureBtn = document.getElementById('saveMixtureBtn');
+    const classifyMixtureBtn = document.getElementById('classifyMixtureBtn');
     const loadMixtureBtn = document.getElementById('loadMixtureBtn');
     const savedMixturesModal = document.getElementById('savedMixturesModal');
     const closeSavedMixturesBtn = document.getElementById('closeSavedMixturesBtn');
     const savedMixturesList = document.getElementById('savedMixturesList');
 
     
+    // --- Receitas Salvas (localStorage — completamente independente do Supabase) ---
     function getSavedMixtures() {
-        if (!currentUser) return [];
-        return myProductsCache.filter(p => p.tipo === 'mistura').map(p => {
-            let data = [];
-            try { 
-                const parsed = JSON.parse(p.observacoes || '[]'); 
-                if (Array.isArray(parsed)) {
-                    data = parsed;
-                } else if (parsed && parsed.mixtureData) {
-                    data = parsed.mixtureData;
-                }
-            }catch(e){}
-            return {
-                id: p.id_supabase,
-                name: p.nome,
-                data: data,
-                raw: p
-            };
-        });
+        return _loadRecipesFromStorage();
     }
 
     async function saveMixtures(mixtures) {
-        if (!currentUser || !supabaseClient) return;
-        
-        // This is called when saving a NEW mixture. We find the latest one added.
-        const latest = mixtures[mixtures.length - 1];
-        if(!latest) return;
-        
-        const { data, error } = await supabaseClient.from('meus_produtos').insert([{
-            user_id: currentUser.id,
-            nome: latest.name,
-            tipo: 'mistura',
-            observacoes: JSON.stringify(latest.data)
-        }]);
-        
-        await loadMyProducts(); // reload cache
+        // Receitas só vão para o localStorage — sem tocar no Supabase
+        _saveRecipesToStorage(mixtures);
+        console.log(`[Receitas] ${mixtures.length} receita(s) salvas no localStorage.`);
     }
 
 
@@ -1826,18 +1892,22 @@ async function searchPubChem(query) {
             const frases_h = Array.from(document.getElementById('pdFrasesH').children).map(li => li.textContent);
             const frases_p = Array.from(document.getElementById('pdFrasesP').children).map(li => li.textContent);
 
+            // Banco pessoal: observacoes guarda os dados da mistura e as frases
             const payload_observacoes = {
                 mixtureData: currentMixture,
                 frases_h: frases_h,
                 frases_p: frases_p
             };
 
+            // tipo reflete a natureza do item no banco pessoal
+            const tipo_banco = currentMixture.length > 1 ? 'mistura' : 'residuo';
+
             let error = null;
             if (currentMyProductId) {
-                // Atualiza um item existente do próprio usuário
+                // Atualiza um item existente do banco pessoal (nunca sobrescreve receitas)
                 const res = await supabaseClient.from('meus_produtos').update({
                     nome: nome,
-                    tipo: currentMixture.length > 1 ? 'mistura' : 'residuo',
+                    tipo: tipo_banco,
                     ghs_classes: ghs_classes,
                     estado_fisico: estado_fisico,
                     incompatibilidade: incompatibilidade,
@@ -1846,11 +1916,11 @@ async function searchPubChem(query) {
                 }).eq('id', currentMyProductId);
                 error = res.error;
             } else {
-                // Cria um novo item no banco do usuário
+                // Cria novo item no banco pessoal
                 const res = await supabaseClient.from('meus_produtos').insert([{
                     user_id: currentUser.id,
                     nome: nome,
-                    tipo: currentMixture.length > 1 ? 'mistura' : 'residuo',
+                    tipo: tipo_banco,
                     ghs_classes: ghs_classes,
                     estado_fisico: estado_fisico,
                     incompatibilidade: incompatibilidade,
@@ -1864,9 +1934,8 @@ async function searchPubChem(query) {
             }
 
             await loadMyProducts();
-            
             savePersonalDbBtn.innerHTML = originalText;
-            
+
             if (error) {
                 console.error("Erro ao salvar no Meu Banco:", error);
                 alert("Erro ao salvar: " + error.message);
@@ -1876,23 +1945,132 @@ async function searchPubChem(query) {
         });
     }
 
+    if(classifyMixtureBtn) {
+        classifyMixtureBtn.addEventListener('click', async () => {
+            if (currentMixture.length === 0) {
+                alert("Adicione pelo menos um resíduo à mistura antes de classificar.");
+                return;
+            }
+
+            const originalText = classifyMixtureBtn.innerHTML;
+            classifyMixtureBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Classificando...';
+            classifyMixtureBtn.disabled = true;
+
+            try {
+                // Prepara o payload no formato esperado pelo /api/classify
+                const payload = {
+                    substances: currentMixture.map(item => ({
+                        name: item.produto.Common_Name_PT || item.produto.Common_Name,
+                        percentage: item.percentage
+                    }))
+                };
+
+                const res = await fetch('/api/classify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error(`Erro na API: ${res.status}`);
+                const data = await res.json();
+
+                // 1. Atualizar Pictogramas visuais
+                if (data.pictograms && data.pictograms.length > 0) {
+                    selectedPictograms.clear();
+                    data.pictograms.forEach(ghsCode => {
+                        const localId = GHS_API_TO_LOCAL[ghsCode];
+                        if (localId) selectedPictograms.add(localId);
+                    });
+                    
+                    const picContainer = document.getElementById('pdPictogramas');
+                    if (picContainer) {
+                        picContainer.querySelectorAll('.picto-item').forEach(item => {
+                            const ghsObj = allGhs.find(g => g.label === item.title);
+                            if (ghsObj) {
+                                if (selectedPictograms.has(ghsObj.id)) item.classList.add('active');
+                                else item.classList.remove('active');
+                            }
+                        });
+                    }
+                }
+
+                // 2. Renderiza o resultado na nova seção
+                const classifyResultSection = document.getElementById('classificationResultSection');
+                const classificationDetails = document.getElementById('classificationDetails');
+                
+                if (classifyResultSection && classificationDetails) {
+                    let html = `
+                        <p><strong>ONU:</strong> ${data.un_number || 'N/A'} - ${data.proper_shipping_name || ''}</p>
+                        <p><strong>Classe de Risco:</strong> ${data.risk_class || 'N/A'}</p>
+                    `;
+
+                    if (data.h_phrases && data.h_phrases.length > 0) {
+                        html += `<p><strong>Frases de Perigo:</strong><br/>${data.h_phrases.join('<br/>')}</p>`;
+                    }
+
+                    if (data.safety_alert) {
+                        html += `<div style="margin-top: 10px; padding: 10px; background-color: #fee2e2; color: #dc2626; border: 2px solid #ef4444; border-radius: 6px; font-weight: bold; display: flex; align-items: flex-start; gap: 8px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:2px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            <div>${data.safety_alert}</div>
+                        </div>`;
+                    }
+
+                    classificationDetails.innerHTML = html;
+                    classifyResultSection.classList.remove('hidden');
+                }
+
+                // Habilita o botão Salvar Receita
+                if (saveMixtureBtn) {
+                    saveMixtureBtn.disabled = false;
+                    saveMixtureBtn.style.opacity = '1';
+                    saveMixtureBtn.style.cursor = 'pointer';
+                }
+
+            } catch (error) {
+                console.error("Erro ao classificar mistura:", error);
+                alert("Falha ao classificar a mistura. Verifique sua conexão e tente novamente.");
+            } finally {
+                classifyMixtureBtn.innerHTML = originalText;
+                classifyMixtureBtn.disabled = false;
+            }
+        });
+    }
+
     if(saveMixtureBtn) {
         saveMixtureBtn.addEventListener('click', async () => {
+            if (!currentUser || !supabaseClient) {
+                alert("Você precisa estar logado para salvar receitas na nuvem.");
+                return;
+            }
             if (currentMixture.length === 0) return;
+            
             const recipeName = prompt("Digite um nome para esta Receita/Mistura (ex: Mistura HPLC):");
             if (!recipeName) return;
 
-            const mixtures = getSavedMixtures();
-            mixtures.push({
-                id: Date.now(),
-                name: recipeName,
-                data: currentMixture
-            });
-            const originalText = saveMixtureBtn.textContent;
-            saveMixtureBtn.textContent = 'Salvando...';
-            await saveMixtures(mixtures);
-            saveMixtureBtn.textContent = originalText;
-            alert("Receita salva no Meu Banco com sucesso!");
+            const originalText = saveMixtureBtn.innerHTML;
+            saveMixtureBtn.textContent = "Salvando...";
+
+            const payload_observacoes = {
+                subtipo: 'receita',
+                mixtureData: currentMixture
+            };
+
+            const { data, error } = await supabaseClient.from('meus_produtos').insert([{
+                user_id: currentUser.id,
+                nome: recipeName,
+                tipo: 'mistura',
+                observacoes: JSON.stringify(payload_observacoes)
+            }]);
+
+            saveMixtureBtn.innerHTML = originalText;
+
+            if (error) {
+                console.error("Erro ao salvar Receita na nuvem:", error);
+                alert("Erro ao salvar Receita: " + error.message);
+            } else {
+                alert(`Receita "${recipeName}" salva com sucesso!`);
+                await loadMyProducts(); // Atualiza a mySavedRecipesCache
+            }
         });
     }
 
@@ -1910,82 +2088,47 @@ async function searchPubChem(query) {
     }
 
     window.loadRecipe = function(id) {
-        const mixtures = getSavedMixtures();
-        const recipe = mixtures.find(m => m.id === id);
-        if (recipe) {
-            // Re-gerar IDs para os itens do carrinho para evitar conflitos futuros
-            currentMixture = recipe.data.map(item => ({
-                ...item,
-                id: Date.now() + Math.random()
-            }));
-            updateMixtureDisplay();
-            savedMixturesModal.classList.add('hidden');
-            
-            // Timeout para restaurar edições como Nome, ONU, Estado, Incompatibilidade e Pictogramas
-            setTimeout(() => {
-                currentMyProductId = recipe.raw.id_supabase;
-                const data = recipe.raw;
-                if(data.nome) document.getElementById('pdNome').textContent = data.nome;
-                if(data.onu_number) document.getElementById('pdOnu').textContent = (data.onu_number.toUpperCase().startsWith('ONU') ? '' : 'ONU: ') + data.onu_number;
-                if(data.estado_fisico && document.getElementById('pdEstado')) document.getElementById('pdEstado').value = data.estado_fisico;
-                if(data.incompatibilidade && document.getElementById('pdIncompatibilidade')) document.getElementById('pdIncompatibilidade').value = data.incompatibilidade;
-                
-                // Restaurar Pictogramas
-                if(data.ghs_classes && Array.isArray(data.ghs_classes)) {
-                    selectedPictograms.clear();
-                    data.ghs_classes.forEach(cls => selectedPictograms.add(cls));
-                    
-                    const picContainer = document.getElementById('pdPictogramas');
-                    if (picContainer) {
-                        picContainer.querySelectorAll('.picto-item').forEach(item => {
-                            const title = item.title;
-                            const ghsObj = allGhs.find(g => g.label === title);
-                            if(ghsObj && data.ghs_classes.includes(ghsObj.id)) {
-                                item.classList.add('active');
-                            } else {
-                                item.classList.remove('active');
-                            }
-                        });
-                    }
-                }
+        const recipe = mySavedRecipesCache.find(r => r.id == id);
+        if (!recipe) return;
 
-                // Restaurar Frases H e P
-                try {
-                    const parsedObs = JSON.parse(data.observacoes || '{}');
-                    if (!Array.isArray(parsedObs)) {
-                        if (parsedObs.frases_h && Array.isArray(parsedObs.frases_h)) {
-                            document.getElementById('pdFrasesH').innerHTML = parsedObs.frases_h.map(f => `<li>${f}</li>`).join('');
-                        }
-                        if (parsedObs.frases_p && Array.isArray(parsedObs.frases_p)) {
-                            document.getElementById('pdFrasesP').innerHTML = parsedObs.frases_p.map(f => `<li>${f}</li>`).join('');
-                        }
-                    }
-                } catch(e) {}
-                // Exibir o botão de exclusão, pois o usuário é dono da mistura
-                const delBtn = document.getElementById('deletePersonalDbBtn');
-                if (delBtn) {
-                    delBtn.classList.remove('hidden');
-                    delBtn.style.display = 'inline-flex';
-                }
-            }, 50);
-        }
+        // Carrega os componentes da receita no carrinho
+        currentMixture = recipe.data.map(item => ({
+            ...item,
+            id: Date.now() + Math.random()
+        }));
+        updateMixtureDisplay();
+        savedMixturesModal.classList.add('hidden');
+
+        // Receita carregada: currentMyProductId permanece null
+        // O usuário pode salvar no banco pessoal como NOVO item independente
+        currentRecipeId = id;
+        currentMyProductId = null;
+
+        // Atualizar nome da etiqueta
+        setTimeout(() => {
+            if (recipe.name) document.getElementById('pdNome').textContent = recipe.name;
+            // Botão de excluir do banco pessoal fica oculto — não é um item do banco
+            const delBtn = document.getElementById('deletePersonalDbBtn');
+            if (delBtn) delBtn.classList.add('hidden');
+        }, 50);
     };
 
     window.deleteRecipe = async function(id) {
-        if(!confirm("Tem certeza que deseja apagar esta receita salva do seu banco de dados?")) return;
-        const { data, error } = await supabaseClient.from('meus_produtos').delete().eq('id', id).select();
+        if (!confirm("Tem certeza que deseja apagar esta receita?")) return;
+        
+        const { error } = await supabaseClient.from('meus_produtos').delete().eq('id', id);
+        
         if (error) {
-            alert("Erro ao excluir: " + error.message);
-        } else if (data && data.length === 0) {
-            alert("Falha ao excluir: A receita não foi encontrada ou a exclusão foi bloqueada pelas regras de segurança (RLS) do Supabase.");
+            alert("Erro ao excluir receita: " + error.message);
         } else {
+            if (currentRecipeId == id) currentRecipeId = null;
             await loadMyProducts();
             renderSavedMixtures();
         }
     };
 
     function renderSavedMixtures() {
-        const mixtures = getSavedMixtures();
+        const mixtures = mySavedRecipesCache;
         if (mixtures.length === 0) {
             savedMixturesList.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Nenhuma receita salva ainda.</p>';
             return;
@@ -2002,13 +2145,19 @@ async function searchPubChem(query) {
             div.style.justifyContent = 'space-between';
             div.style.alignItems = 'center';
 
-            // Construção da string de Composição unificada (usando os nomes em Português)
-            const composicaoText = recipe.data.map(m => `${m.produto.Common_Name_PT || m.produto.Common_Name} (${m.percentage}%)`).join(' + ');
+            const composicaoText = Array.isArray(recipe.data)
+                ? recipe.data.map(m => `${m.produto.Common_Name_PT || m.produto.Common_Name} (${m.percentage}%)`).join(' + ')
+                : '';
+
+            const dataStr = recipe.savedAt
+                ? new Date(recipe.savedAt).toLocaleDateString('pt-BR')
+                : '';
 
             div.innerHTML = `
                 <div style="flex: 1;">
-                    <h3 style="margin: 0 0 0.5rem 0;">${recipe.name}</h3>
+                    <h3 style="margin: 0 0 0.3rem 0;">${recipe.name}</h3>
                     <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">${composicaoText}</p>
+                    ${dataStr ? `<p style="margin: 0.2rem 0 0 0; font-size: 0.75rem; color: var(--text-secondary);">Salva em: ${dataStr}</p>` : ''}
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
                     <button onclick="loadRecipe('${recipe.id}')" class="primary-btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Carregar</button>
