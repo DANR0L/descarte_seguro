@@ -1964,6 +1964,7 @@ async function searchPubChem(query) {
             try {
                 // Prepara o payload no formato esperado pelo /api/classify
                 const payload = {
+                    components: currentMixture.map(item => ({ name: item.produto.Common_Name_PT || item.produto.Common_Name, percentage: item.percentage })),
                     substances: currentMixture.map(item => ({
                         name: item.produto.Common_Name_PT || item.produto.Common_Name,
                         fraction: item.percentage, // FIXED to map to fraction
