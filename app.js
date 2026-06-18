@@ -1169,15 +1169,29 @@ async function searchPubChem(query) {
 
         // Reset classification state
         const saveMixtureBtn = document.getElementById('saveMixtureBtn');
-        const classifyResultSection = document.getElementById('classificationResultSection');
         if (saveMixtureBtn) {
             saveMixtureBtn.disabled = true;
             saveMixtureBtn.style.opacity = '0.5';
             saveMixtureBtn.style.cursor = 'not-allowed';
         }
-        if (classifyResultSection) {
-            classifyResultSection.classList.add('hidden');
+        
+        // Limpar visualmente a etiqueta para forçar reclassificação
+        document.getElementById('pdOnu').textContent = "Pendente de Classificação...";
+        document.getElementById('pdClasse').textContent = "Pendente...";
+        document.getElementById('pdAdvertencia').textContent = "Pendente...";
+        document.getElementById('pdFrasesH').innerHTML = '';
+        document.getElementById('pdFrasesP').innerHTML = '';
+        selectedPictograms.clear();
+        
+        const picContainer = document.getElementById('pdPictogramas');
+        if (picContainer) {
+            picContainer.querySelectorAll('.picto-item').forEach(item => {
+                item.classList.remove('active');
+            });
         }
+        
+        const alertBanner = document.getElementById('pdSafetyAlert');
+        if (alertBanner) alertBanner.style.display = 'none';
 
         // Renderiza a lista do carrinho
         mixtureList.innerHTML = '';
@@ -1416,10 +1430,9 @@ async function searchPubChem(query) {
 
         document.getElementById('pdNome').textContent = unifiedName;
         document.getElementById('pdComposicao').textContent = unifiedComp;
-        let onuDisplay = unifiedOnu.toUpperCase().startsWith("ONU") ? unifiedOnu : `ONU: ${unifiedOnu}`;
-        document.getElementById('pdOnu').textContent = onuDisplay;
-        document.getElementById('pdClasse').textContent = unifiedClass;
-        document.getElementById('pdAdvertencia').textContent = unifiedAdvertencia;
+
+        // Limpa pictogramas locais para que a API preencha
+        selectedPictograms.clear();
 
         const picContainer = document.getElementById('pdPictogramas');
         picContainer.innerHTML = '';
@@ -1442,14 +1455,6 @@ async function searchPubChem(query) {
             picContainer.appendChild(div);
         });
 
-        const displayH = processPhrases(allH, false);
-        const displayP = processPhrases(allP, true);
-        
-        document.getElementById('pdFrasesH').innerHTML = displayH.map(f => `<li>${f}</li>`).join('');
-        document.getElementById('pdFrasesP').innerHTML = displayP.map(f => `<li>${f}</li>`).join('');
-
-        // --- Integração com API /api/classify (motor de regras Vercel) ---
-        _callClassifyAPI();
     }
 
     // Mapeamento de código GHS da API (ex: "GHS02") para id interno do allGhs (ex: "ghs02_inflamavel")
@@ -1994,29 +1999,53 @@ async function searchPubChem(query) {
                     }
                 }
 
-                // 2. Renderiza o resultado na nova seção
-                const classifyResultSection = document.getElementById('classificationResultSection');
-                const classificationDetails = document.getElementById('classificationDetails');
+                // 2. Preencher a Etiqueta com os resultados da API
+                if (data.un_number && data.un_number !== 'UN0000') {
+                    const onuText = `ONU ${data.un_number} ${data.proper_shipping_name || ''}`.trim();
+                    document.getElementById('pdOnu').textContent = onuText;
+                } else {
+                    document.getElementById('pdOnu').textContent = "A definir";
+                }
                 
-                if (classifyResultSection && classificationDetails) {
-                    let html = `
-                        <p><strong>ONU:</strong> ${data.un_number || 'N/A'} - ${data.proper_shipping_name || ''}</p>
-                        <p><strong>Classe de Risco:</strong> ${data.risk_class || 'N/A'}</p>
-                    `;
+                if (data.risk_class) {
+                    document.getElementById('pdClasse').textContent = data.risk_class;
+                } else {
+                    document.getElementById('pdClasse').textContent = "A definir";
+                }
 
-                    if (data.h_phrases && data.h_phrases.length > 0) {
-                        html += `<p><strong>Frases de Perigo:</strong><br/>${data.h_phrases.join('<br/>')}</p>`;
+                // Palavra de Advertência e Alerta de Segurança
+                const alertBanner = document.getElementById('pdSafetyAlert');
+                const alertText = document.getElementById('pdSafetyAlertText');
+                const hasCritical = data.details && data.details.incompatibilities && data.details.incompatibilities.some(i => i.severity === 'CRITICAL');
+                
+                document.getElementById('pdAdvertencia').textContent = hasCritical ? 'PERIGO' : 'ATENÇÃO';
+
+                if (alertBanner && alertText && data.safety_alert) {
+                    const hasIncompatibility = data.details && data.details.incompatibilities && data.details.incompatibilities.length > 0;
+                    if (hasIncompatibility) {
+                        alertText.textContent = data.safety_alert;
+                        alertBanner.style.display = 'block';
+                    } else {
+                        alertBanner.style.display = 'none';
                     }
+                } else if (alertBanner) {
+                    alertBanner.style.display = 'none';
+                }
 
-                    if (data.safety_alert) {
-                        html += `<div style="margin-top: 10px; padding: 10px; background-color: #fee2e2; color: #dc2626; border: 2px solid #ef4444; border-radius: 6px; font-weight: bold; display: flex; align-items: flex-start; gap: 8px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:2px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                            <div>${data.safety_alert}</div>
-                        </div>`;
+                // Frases H e P com textos resolvidos (máximo 6 cada)
+                if (data.details) {
+                    if (data.details.h_phrases_texts && data.details.h_phrases_texts.length > 0) {
+                        document.getElementById('pdFrasesH').innerHTML = data.details.h_phrases_texts
+                            .slice(0, 6).map(h => `<li><strong>${h.code}</strong> – ${h.text}</li>`).join('');
+                    } else {
+                        document.getElementById('pdFrasesH').innerHTML = '';
                     }
-
-                    classificationDetails.innerHTML = html;
-                    classifyResultSection.classList.remove('hidden');
+                    if (data.details.p_phrases_texts && data.details.p_phrases_texts.length > 0) {
+                        document.getElementById('pdFrasesP').innerHTML = data.details.p_phrases_texts
+                            .slice(0, 6).map(p => `<li><strong>${p.code}</strong> – ${p.text}</li>`).join('');
+                    } else {
+                        document.getElementById('pdFrasesP').innerHTML = '';
+                    }
                 }
 
                 // Habilita o botão Salvar Receita
