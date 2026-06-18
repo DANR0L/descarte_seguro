@@ -1220,7 +1220,7 @@ async function searchPubChem(query) {
         });
 
         checkIncompatibility();
-        calculateUnifiedLabel();
+        // calculateUnifiedLabel();
     }
 
     function calculateUnifiedLabel() {
@@ -1966,6 +1966,7 @@ async function searchPubChem(query) {
                 const payload = {
                     substances: currentMixture.map(item => ({
                         name: item.produto.Common_Name_PT || item.produto.Common_Name,
+                        fraction: item.percentage, // FIXED to map to fraction
                         percentage: item.percentage
                     }))
                 };
@@ -2031,20 +2032,21 @@ async function searchPubChem(query) {
                 }
 
                 // Frases H e P com textos resolvidos (máximo 6 cada) lendo diretamente dos arrays data.h_phrases e data.p_phrases
-                if (data.h_phrases && Array.isArray(data.h_phrases) && data.h_phrases.length > 0) {
-                    // Assume que os arrays podem conter objetos {code, text} ou apenas strings
-                    document.getElementById('pdFrasesH').innerHTML = data.h_phrases.slice(0, 6).map(h => {
-                        if (typeof h === 'object' && h.code) return `<li><strong>${h.code}</strong> – ${h.text || ''}</li>`;
-                        return `<li>${h}</li>`;
+                const finalHPhrases = (data.details && data.details.h_phrases_texts) ? data.details.h_phrases_texts : data.h_phrases;
+                if (finalHPhrases && Array.isArray(finalHPhrases) && finalHPhrases.length > 0) {
+                    document.getElementById('pdFrasesH').innerHTML = finalHPhrases.slice(0, 6).map(h => {
+                        if (typeof h === 'object' && h.code) return '<li><strong>' + h.code + '</strong> - ' + (h.text || '') + '</li>';
+                        return '<li>' + h + '</li>';
                     }).join('');
                 } else {
                     document.getElementById('pdFrasesH').innerHTML = '';
                 }
 
-                if (data.p_phrases && Array.isArray(data.p_phrases) && data.p_phrases.length > 0) {
-                    document.getElementById('pdFrasesP').innerHTML = data.p_phrases.slice(0, 6).map(p => {
-                        if (typeof p === 'object' && p.code) return `<li><strong>${p.code}</strong> – ${p.text || ''}</li>`;
-                        return `<li>${p}</li>`;
+                const finalPPhrases = (data.details && data.details.p_phrases_texts) ? data.details.p_phrases_texts : data.p_phrases;
+                if (finalPPhrases && Array.isArray(finalPPhrases) && finalPPhrases.length > 0) {
+                    document.getElementById('pdFrasesP').innerHTML = finalPPhrases.slice(0, 6).map(p => {
+                        if (typeof p === 'object' && p.code) return '<li><strong>' + p.code + '</strong> - ' + (p.text || '') + '</li>';
+                        return '<li>' + p + '</li>';
                     }).join('');
                 } else {
                     document.getElementById('pdFrasesP').innerHTML = '';
