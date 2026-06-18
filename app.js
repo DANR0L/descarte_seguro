@@ -2019,7 +2019,4 @@ async function searchPubChem(query) {
         });
     }
 
-
-    }
-
 });
