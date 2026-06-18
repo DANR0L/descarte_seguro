@@ -2143,10 +2143,7 @@ async function searchPubChem(query) {
             if (aiResult.pictograms && Array.isArray(aiResult.pictograms)) {
                 aiResult.pictograms.forEach(p => selectedPictograms.add(p));
                 
-                // Hierarquia GHS: GHS05/GHS06 exclui GHS07
-                if (selectedPictograms.has("GHS06") || selectedPictograms.has("GHS05")) {
-                    selectedPictograms.delete("GHS07");
-                }
+                // Delegação GHS: A inteligência da Adapta ONE agora decide a redundância do GHS07
                 
                 const picContainer = document.getElementById('pdPictogramas');
                 if (picContainer) {
