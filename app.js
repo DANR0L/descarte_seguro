@@ -2113,7 +2113,28 @@ async function searchPubChem(query) {
             
             // === MERGE: Pictogramas — ADICIONAR sem remover os existentes ===
             if (aiResult.pictograms && Array.isArray(aiResult.pictograms)) {
-                aiResult.pictograms.forEach(p => selectedPictograms.add(p));
+                const mapGhsToId = {
+                    'GHS01': 'ghs01_explosivo',
+                    'GHS02': 'ghs02_inflamavel',
+                    'GHS03': 'ghs03_oxidante',
+                    'GHS04': 'ghs04_gas',
+                    'GHS05': 'ghs05_corrosivo',
+                    'GHS06': 'ghs06_toxico',
+                    'GHS07': 'ghs07_irritante',
+                    'GHS08': 'ghs08_saude',
+                    'GHS09': 'ghs09_meioambiente'
+                };
+
+                aiResult.pictograms.forEach(p => {
+                    const cleanP = p.trim().toUpperCase();
+                    if (mapGhsToId[cleanP]) {
+                        selectedPictograms.add(mapGhsToId[cleanP]);
+                    } else {
+                        // Tenta descobrir o ID se a IA mandar já no formato interno
+                        const found = allGhs.find(g => g.id === cleanP.toLowerCase());
+                        if (found) selectedPictograms.add(found.id);
+                    }
+                });
                 
                 // Delegação GHS: A inteligência da Adapta ONE agora decide a redundância do GHS07
                 
