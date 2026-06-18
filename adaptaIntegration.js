@@ -7,10 +7,30 @@ const ADAPTA_CONFIG = {
 
 window.renderSafetyAlert = function(data) {
     const safetyAlert = data?.safety_alert ?? null;
-    if (!safetyAlert) return;
-
+    
+    // Remove o banner existente, se houver
     const existing = document.getElementById('adapta-safety-alert');
     if (existing) existing.remove();
+
+    const printBtn = document.getElementById('printBtn');
+
+    if (!safetyAlert) {
+        // Se a IA não detectou alerta de segurança e a checagem local já liberou,
+        // garantimos que o botão volte ao cursor normal.
+        if (printBtn && !printBtn.disabled) {
+            printBtn.style.cursor = 'pointer';
+            printBtn.removeAttribute('title');
+        }
+        return;
+    }
+
+    // BLOQUEIO DA GERAÇÃO DA ETIQUETA
+    if (printBtn) {
+        printBtn.disabled = true;
+        printBtn.style.opacity = '0.5';
+        printBtn.style.cursor = 'not-allowed';
+        printBtn.title = 'A geração da etiqueta foi bloqueada devido a uma incompatibilidade química grave detectada pela IA.';
+    }
 
     const alert = document.createElement('div');
     alert.id = 'adapta-safety-alert';
