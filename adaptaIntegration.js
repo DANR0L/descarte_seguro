@@ -121,13 +121,12 @@ window.fetchGHSClassification = async function(mixtureArray) {
     } catch (e) {
         console.error("[Adapta ONE] Erro de conexão com a IA:", e);
         
-        // Se o erro foi retornado pela API (como um 500 Internal Server Error), vamos avisar o usuário.
-        // Se for apenas erro de rede (CORS no file://), vai ser ignorado.
-        if (e.message && e.message.includes('Adapta ONE request failed')) {
-            window.renderSafetyAlert({ 
-                safety_alert: `A Skill da Adapta ONE (019ed83c...) falhou ao processar os dados. Erro: ${e.message}. Verifique o painel da Adapta ONE.` 
-            });
-        }
+        // Vamos forçar o banner a aparecer SEMPRE que houver erro de rede, CORS ou API.
+        // Assim o usuário não ficará confuso achando que o banner "não apareceu".
+        // O erro será explícito na tela.
+        window.renderSafetyAlert({ 
+            safety_alert: `Aviso do Sistema: Falha ao conectar com a IA da Adapta ONE. Erro: ${e.message}. (Verifique se você está rodando o sistema localmente no formato file://. Se sim, use um Live Server ou acesse o link da Vercel).` 
+        });
         
         return null;
     }
