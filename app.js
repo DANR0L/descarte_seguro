@@ -2137,53 +2137,6 @@ async function searchPubChem(query) {
                 });
                 
                 // Delegação GHS: A inteligência da Adapta ONE agora decide a redundância do GHS07
-                
-                // === MERGE: Safety Alert (Banner Crítico) ===
-                const safetyAlert = aiResult.safety_alert || null;
-                const existingAlert = document.getElementById('adapta-safety-alert');
-                
-                if (existingAlert) existingAlert.remove();
-
-                if (safetyAlert) {
-                    console.log("[Adapta ONE] Ativando banner de segurança visual GLOBAL!");
-                    
-                    const alertDiv = document.createElement('div');
-                    alertDiv.id = 'adapta-safety-alert';
-                    alertDiv.setAttribute('role', 'alert');
-                    alertDiv.setAttribute('aria-live', 'assertive');
-                    alertDiv.textContent = `⚠️ ALERTA DE SEGURANÇA: ${String(safetyAlert)}`;
-
-                    alertDiv.style.cssText = `
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        z-index: 2147483647;
-                        background: #dc2626;
-                        color: #ffffff;
-                        font-weight: 800;
-                        font-size: 1.25rem;
-                        text-align: center;
-                        padding: 1rem;
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-                        animation: adapta-safety-blink 1s infinite;
-                        pointer-events: auto;
-                    `;
-
-                    if (!document.getElementById('adapta-safety-styles')) {
-                        const style = document.createElement('style');
-                        style.id = 'adapta-safety-styles';
-                        style.textContent = `
-                            @keyframes adapta-safety-blink {
-                                0%, 100% { opacity: 1; }
-                                50% { opacity: 0.35; }
-                            }
-                        `;
-                        document.head.appendChild(style);
-                    }
-                    
-                    document.body.prepend(alertDiv);
-                }
 
                 const picContainer = document.getElementById('pdPictogramas');
                 if (picContainer) {

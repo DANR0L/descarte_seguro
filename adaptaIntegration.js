@@ -5,6 +5,51 @@ const ADAPTA_CONFIG = {
     api_base_url: "/api/adapta-one/ghs-classify"
 };
 
+window.renderSafetyAlert = function(data) {
+    const safetyAlert = data?.safety_alert ?? null;
+    if (!safetyAlert) return;
+
+    const existing = document.getElementById('adapta-safety-alert');
+    if (existing) existing.remove();
+
+    const alert = document.createElement('div');
+    alert.id = 'adapta-safety-alert';
+    alert.setAttribute('role', 'alert');
+    alert.setAttribute('aria-live', 'assertive');
+    alert.textContent = String(safetyAlert);
+
+    alert.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 2147483647;
+        background: #dc2626;
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 1.25rem;
+        text-align: center;
+        padding: 1rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        animation: adapta-safety-blink 1s infinite;
+        pointer-events: auto;
+    `;
+
+    if (!document.getElementById('adapta-safety-styles')) {
+        const style = document.createElement('style');
+        style.id = 'adapta-safety-styles';
+        style.textContent = `
+            @keyframes adapta-safety-blink {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.35; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    document.body.prepend(alert);
+};
+
 window.fetchGHSClassification = async function(mixtureArray) {
     // Preparar dados simplificados para a IA
     const contentPayload = mixtureArray.map(item => ({
@@ -40,6 +85,9 @@ window.fetchGHSClassification = async function(mixtureArray) {
 
         const data = await response.json();
         console.log("[Adapta ONE] Resposta estruturada recebida (JSON):", data);
+
+        // Renderiza o banner vermelho fixo globalmente
+        window.renderSafetyAlert(data);
 
         // Verificação se a resposta veio vazia ou em formato incorreto
         if (!data || Object.keys(data).length === 0) {
