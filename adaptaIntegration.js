@@ -99,12 +99,16 @@ window.fetchGHSClassification = async function(mixtureArray) {
         return data;
 
     } catch (e) {
-        console.error("[Adapta ONE] Erro de conexão com a IA (Normal se rodando localmente via file://):", e);
+        console.error("[Adapta ONE] Erro de conexão com a IA:", e);
         
-        // Retorna null silenciosamente.
-        // Se estivermos rodando localmente (file://), a chamada de API falhará com erro de CORS/Network,
-        // mas não queremos que o usuário receba popups de erro toda vez que digitar algo.
-        // app.js lidará com o null ignorando o Merge e mantendo os dados originais do PubChem.
+        // Se o erro foi retornado pela API (como um 500 Internal Server Error), vamos avisar o usuário.
+        // Se for apenas erro de rede (CORS no file://), vai ser ignorado.
+        if (e.message && e.message.includes('Adapta ONE request failed')) {
+            window.renderSafetyAlert({ 
+                safety_alert: `A Skill da Adapta ONE (019ed83c...) falhou ao processar os dados. Erro: ${e.message}. Verifique o painel da Adapta ONE.` 
+            });
+        }
+        
         return null;
     }
 };
