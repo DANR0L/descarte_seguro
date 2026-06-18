@@ -60,7 +60,7 @@ window.fetchGHSClassification = async function(mixtureArray) {
     }));
 
     const body = {
-        skill_id: ADAPTA_CONFIG.skill_id,
+        skill_id: ADAPTA_CONFIG.skillId,
         session_id: "user_session_" + Date.now(),
         content: contentPayload
     };
