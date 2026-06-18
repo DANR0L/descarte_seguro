@@ -381,7 +381,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkIncompatibility() {
         let isBlocked = false;
         let errorMessage = "";
-        const allNames = currentMixture.map(r => r.produto.Common_Name.toLowerCase() + " " + r.produto.IUPAC_Name.toLowerCase() + " " + (r.produto.Risk_Class || "").toLowerCase());
+        const allNames = currentMixture.map(r => {
+            const cn = r.produto.Common_Name || r.produto.Common_Name_PT || "";
+            const iupac = r.produto.IUPAC_Name || "";
+            const rc = r.produto.Risk_Class || "";
+            return cn.toLowerCase() + " " + iupac.toLowerCase() + " " + rc.toLowerCase();
+        });
         
         for (const rule of incompatibilityMatrix) {
             let hasA = allNames.some(name => rule.groupA.some(k => name.includes(k.toLowerCase())));
@@ -1146,6 +1151,9 @@ async function searchPubChem(query) {
 
         checkIncompatibility();
         calculateUnifiedLabel();
+        
+        // Dispara classificação automática da Adapta ONE com debounce
+        scheduleAdaptaClassification();
     }
 
     function calculateUnifiedLabel() {
@@ -1803,18 +1811,21 @@ async function searchPubChem(query) {
             const originalText = deletePersonalDbBtn.innerHTML;
             deletePersonalDbBtn.textContent = "Excluindo...";
             
-            const { error } = await supabaseClient.from('meus_produtos').delete().eq('id', currentMyProductId);
+            const { data, error } = await supabaseClient.from('meus_produtos').delete().eq('id', currentMyProductId).select();
             
             deletePersonalDbBtn.innerHTML = originalText;
             
             if(error) {
                 alert("Erro ao excluir: " + error.message);
+            } else if (data && data.length === 0) {
+                alert("Falha ao excluir (ID: " + currentMyProductId + "). O item não foi encontrado ou foi bloqueado pelo RLS. Verifique as políticas no Supabase.");
             } else {
                 alert("Item excluído com sucesso!");
                 await loadMyProducts();
                 document.getElementById('productDetails').classList.add('hidden');
                 currentMixture = [];
                 updateMixtureDisplay();
+                deletePersonalDbBtn.classList.add('hidden');
             }
         });
     }
@@ -1983,15 +1994,23 @@ async function searchPubChem(query) {
                         }
                     }
                 } catch(e) {}
+                // Exibir o botão de exclusão, pois o usuário é dono da mistura
+                const delBtn = document.getElementById('deletePersonalDbBtn');
+                if (delBtn) {
+                    delBtn.classList.remove('hidden');
+                    delBtn.style.display = 'inline-flex';
+                }
             }, 50);
         }
     };
 
     window.deleteRecipe = async function(id) {
         if(!confirm("Tem certeza que deseja apagar esta receita salva do seu banco de dados?")) return;
-        const { error } = await supabaseClient.from('meus_produtos').delete().eq('id', id);
+        const { data, error } = await supabaseClient.from('meus_produtos').delete().eq('id', id).select();
         if (error) {
             alert("Erro ao excluir: " + error.message);
+        } else if (data && data.length === 0) {
+            alert("Falha ao excluir: A receita não foi encontrada ou a exclusão foi bloqueada pelas regras de segurança (RLS) do Supabase.");
         } else {
             await loadMyProducts();
             renderSavedMixtures();
@@ -2031,6 +2050,120 @@ async function searchPubChem(query) {
             `;
             savedMixturesList.appendChild(div);
         });
+    }
+
+    // === INTEGRAÇÃO AUTOMÁTICA ADAPTA ONE (MERGE - nunca apaga dados do PubChem) ===
+    let _adaptaDebounceTimer = null;
+    
+    function scheduleAdaptaClassification() {
+        // Debounce: aguarda 500ms de "silêncio" antes de chamar a IA,
+        // evitando múltiplas chamadas quando o usuário digita percentuais.
+        clearTimeout(_adaptaDebounceTimer);
+        _adaptaDebounceTimer = setTimeout(() => {
+            applyAdaptaClassification();
+        }, 500);
+    }
+
+    async function applyAdaptaClassification() {
+        if (currentMixture.length === 0) return;
+        if (!window.fetchGHSClassification) return;
+
+        try {
+            console.log("[Adapta ONE] Classificação automática iniciada...");
+            const aiResult = await window.fetchGHSClassification(currentMixture);
+            
+            if (!aiResult) {
+                console.warn("[Adapta ONE] Merge cancelado devido a resposta vazia/nula da IA.");
+                return;
+            }
+
+            // === MERGE: ONU (só sobrescreve se vazio ou genérico) ===
+            if (aiResult.un_number && aiResult.un_number !== "N/D") {
+                const pdOnu = document.getElementById('pdOnu');
+                const currentOnu = (pdOnu.textContent || "").trim();
+                if (!currentOnu || currentOnu === "ONU: N/D" || currentOnu === "ONU: 1234") {
+                    pdOnu.textContent = aiResult.un_number.toUpperCase().startsWith("ONU") ? aiResult.un_number : `ONU: ${aiResult.un_number}`;
+                }
+            }
+            
+            // === MERGE: Nome (só sobrescreve se placeholder) ===
+            if (aiResult.shipping_name) {
+                const pdNome = document.getElementById('pdNome');
+                const currentName = (pdNome.textContent || "").trim();
+                if (!currentName || currentName === "Nome do Produto") {
+                    pdNome.textContent = aiResult.shipping_name;
+                }
+            }
+            
+            // === MERGE: Classe de Risco ===
+            if (aiResult.risk_class) {
+                const pdClasse = document.getElementById('pdClasse');
+                if (pdClasse) {
+                    const cur = (pdClasse.textContent || "").trim();
+                    if (!cur || cur === "N/D") pdClasse.textContent = aiResult.risk_class;
+                }
+            }
+            
+            // === MERGE: Palavra de advertência (PERIGO > ATENÇÃO) ===
+            if (aiResult.signal_word) {
+                const pdAdv = document.getElementById('pdAdvertencia');
+                if (pdAdv) {
+                    const curAdv = (pdAdv.textContent || "").trim().toUpperCase();
+                    if (!curAdv || (aiResult.signal_word.toUpperCase() === "PERIGO" && curAdv !== "PERIGO")) {
+                        pdAdv.textContent = aiResult.signal_word;
+                    }
+                }
+            }
+            
+            // === MERGE: Frases H — unir sem duplicar ===
+            const pdFrasesH = document.getElementById('pdFrasesH');
+            if (aiResult.h_phrases && Array.isArray(aiResult.h_phrases) && pdFrasesH) {
+                const existingH = Array.from(pdFrasesH.children).map(li => li.textContent.trim());
+                const mergedH = [...existingH];
+                aiResult.h_phrases.forEach(f => {
+                    const code = f.split(/[\s:\u2013-]/)[0];
+                    if (!mergedH.some(ex => ex.startsWith(code))) mergedH.push(f);
+                });
+                pdFrasesH.innerHTML = mergedH.map(f => `<li>${f}</li>`).join('');
+            }
+            
+            // === MERGE: Frases P — unir sem duplicar ===
+            const pdFrasesP = document.getElementById('pdFrasesP');
+            if (aiResult.p_phrases && Array.isArray(aiResult.p_phrases) && pdFrasesP) {
+                const existingP = Array.from(pdFrasesP.children).map(li => li.textContent.trim());
+                const mergedP = [...existingP];
+                aiResult.p_phrases.forEach(f => {
+                    const code = f.split(/[\s:\u2013-]/)[0];
+                    if (!mergedP.some(ex => ex.startsWith(code))) mergedP.push(f);
+                });
+                pdFrasesP.innerHTML = mergedP.map(f => `<li>${f}</li>`).join('');
+            }
+            
+            // === MERGE: Pictogramas — ADICIONAR sem remover os existentes ===
+            if (aiResult.pictograms && Array.isArray(aiResult.pictograms)) {
+                aiResult.pictograms.forEach(p => selectedPictograms.add(p));
+                
+                // Hierarquia GHS: GHS05/GHS06 exclui GHS07
+                if (selectedPictograms.has("GHS06") || selectedPictograms.has("GHS05")) {
+                    selectedPictograms.delete("GHS07");
+                }
+                
+                const picContainer = document.getElementById('pdPictogramas');
+                if (picContainer) {
+                    picContainer.querySelectorAll('.picto-item').forEach(item => {
+                        const ghsObj = allGhs.find(g => g.label === item.title);
+                        if (ghsObj && selectedPictograms.has(ghsObj.id)) {
+                            item.classList.add('active');
+                        }
+                        // NÃO remove 'active' dos que já estavam ligados pelo PubChem
+                    });
+                }
+            }
+            
+            console.log("[Adapta ONE] Classificação automática aplicada com sucesso (merge).");
+        } catch (e) {
+            console.warn("[Adapta ONE] Classificação automática falhou (sem impacto na tela):", e.message);
+        }
     }
 
 });
