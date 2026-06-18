@@ -2144,7 +2144,10 @@ async function searchPubChem(query) {
                 const alertContainerPrint = document.getElementById('printSafetyAlert');
                 const alertTextPrint = document.getElementById('printSafetyAlertText');
                 
+                console.log("[Adapta ONE] Verificando safety_alert na resposta:", aiResult.safety_alert);
+
                 if (aiResult.safety_alert) {
+                    console.log("[Adapta ONE] Ativando banner de segurança visual!");
                     if (alertContainerScreen && alertTextScreen) {
                         alertTextScreen.textContent = `⚠️ ALERTA DE SEGURANÇA: ${aiResult.safety_alert}`;
                         alertContainerScreen.style.display = 'block';
