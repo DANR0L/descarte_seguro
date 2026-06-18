@@ -2138,6 +2138,26 @@ async function searchPubChem(query) {
                 
                 // Delegação GHS: A inteligência da Adapta ONE agora decide a redundância do GHS07
                 
+                // === MERGE: Safety Alert (Banner Crítico) ===
+                const alertContainerScreen = document.getElementById('pdSafetyAlert');
+                const alertTextScreen = document.getElementById('pdSafetyAlertText');
+                const alertContainerPrint = document.getElementById('printSafetyAlert');
+                const alertTextPrint = document.getElementById('printSafetyAlertText');
+                
+                if (aiResult.safety_alert) {
+                    if (alertContainerScreen && alertTextScreen) {
+                        alertTextScreen.textContent = `⚠️ ALERTA DE SEGURANÇA: ${aiResult.safety_alert}`;
+                        alertContainerScreen.style.display = 'block';
+                    }
+                    if (alertContainerPrint && alertTextPrint) {
+                        alertTextPrint.textContent = `⚠️ ALERTA: ${aiResult.safety_alert}`;
+                        alertContainerPrint.style.display = 'block';
+                    }
+                } else {
+                    if (alertContainerScreen) alertContainerScreen.style.display = 'none';
+                    if (alertContainerPrint) alertContainerPrint.style.display = 'none';
+                }
+
                 const picContainer = document.getElementById('pdPictogramas');
                 if (picContainer) {
                     picContainer.querySelectorAll('.picto-item').forEach(item => {
