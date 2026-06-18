@@ -1336,13 +1336,7 @@ async function searchPubChem(query) {
             selectedPictograms.add('ghs08_saude');
         }
 
-        // Regras de Precedência GHS para limpeza visual
-        if (selectedPictograms.has('ghs06_toxico')) {
-            selectedPictograms.delete('ghs07_irritante');
-        }
-        if (selectedPictograms.has('ghs05_corrosivo')) {
-            selectedPictograms.delete('ghs07_irritante');
-        }
+        // Delegação GHS: A restrição local do GHS07 foi removida para delegar a decisão à Adapta ONE.
 
         // Filtro de Gases e Comburentes
         let isGasMixtureFinal = currentMixture.every(m => {
@@ -1451,35 +1445,13 @@ async function searchPubChem(query) {
             div.innerHTML = `<img src="${ghs.img}" alt="${ghs.label}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdib3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgYWxpZ25tZW50LWJhc2VsaW5lPSJtaWRkbGUiPklNQUdFTTwvdGV4dD48L3N2Zz4='">`;
             div.title = ghs.label;
             
-            // Se for a exclamação e houver Caveira/Corrosivo, deixa ela visualmente opaca/bloqueada
-            if (ghs.id === 'ghs07_irritante' && (selectedPictograms.has('ghs06_toxico') || selectedPictograms.has('ghs05_corrosivo'))) {
-                div.style.opacity = '0.3';
-                div.style.cursor = 'not-allowed';
-            }
-
             div.addEventListener('click', () => {
-                // Trava de Precedência no momento do clique
-                if (ghs.id === 'ghs07_irritante' && (selectedPictograms.has('ghs06_toxico') || selectedPictograms.has('ghs05_corrosivo'))) {
-                    alert("A Exclamação (GHS07) não pode ser ativada pois a mistura já possui Toxicidade Aguda (Caveira) ou Corrosão. A norma GHS exige a supressão da Exclamação nestes casos.");
-                    return;
-                }
-
                 if (selectedPictograms.has(ghs.id)) {
                     selectedPictograms.delete(ghs.id);
                     div.classList.remove('active');
                 } else {
                     selectedPictograms.add(ghs.id);
                     div.classList.add('active');
-                    
-                    // Validação em tempo real: se ativou Caveira ou Corrosivo manualmente, desativa a Exclamação
-                    if (ghs.id === 'ghs06_toxico' || ghs.id === 'ghs05_corrosivo') {
-                        if (selectedPictograms.has('ghs07_irritante')) {
-                            selectedPictograms.delete('ghs07_irritante');
-                            // Para atualizar a interface visualmente, refaz a grade:
-                            calculateUnifiedLabel();
-                            return; // Previne dupla execução do clique
-                        }
-                    }
                 }
             });
             picContainer.appendChild(div);
