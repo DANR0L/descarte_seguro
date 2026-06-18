@@ -1983,7 +1983,7 @@ async function searchPubChem(query) {
                 if (data.pictograms && data.pictograms.length > 0) {
                     selectedPictograms.clear();
                     data.pictograms.forEach(ghsCode => {
-                        const localId = GHS_API_TO_LOCAL[ghsCode];
+                        const localId = GHS_API_TO_LOCAL[String(ghsCode).toUpperCase()];
                         if (localId) selectedPictograms.add(localId);
                     });
                     
@@ -2001,7 +2001,9 @@ async function searchPubChem(query) {
 
                 // 2. Preencher a Etiqueta com os resultados da API
                 if (data.un_number && data.un_number !== 'UN0000') {
-                    const onuText = `ONU ${data.un_number} ${data.proper_shipping_name || ''}`.trim();
+                    // Limpa um possível 'UN' ou 'ONU' já presente na string e garante o formato "ONU XXXX - Nome"
+                    const rawUn = data.un_number.replace(/^UN|ONU/i, '').trim();
+                    const onuText = `ONU ${rawUn} - ${data.proper_shipping_name || ''}`.trim();
                     document.getElementById('pdOnu').textContent = onuText;
                 } else {
                     document.getElementById('pdOnu').textContent = "A definir";
@@ -2016,36 +2018,36 @@ async function searchPubChem(query) {
                 // Palavra de Advertência e Alerta de Segurança
                 const alertBanner = document.getElementById('pdSafetyAlert');
                 const alertText = document.getElementById('pdSafetyAlertText');
-                const hasCritical = data.details && data.details.incompatibilities && data.details.incompatibilities.some(i => i.severity === 'CRITICAL');
                 
+                // Se não houver 'details' na resposta, vamos inferir o perigo pelo safety_alert
+                const hasCritical = !!data.safety_alert || (data.details && data.details.incompatibilities && data.details.incompatibilities.some(i => i.severity === 'CRITICAL'));
                 document.getElementById('pdAdvertencia').textContent = hasCritical ? 'PERIGO' : 'ATENÇÃO';
 
                 if (alertBanner && alertText && data.safety_alert) {
-                    const hasIncompatibility = data.details && data.details.incompatibilities && data.details.incompatibilities.length > 0;
-                    if (hasIncompatibility) {
-                        alertText.textContent = data.safety_alert;
-                        alertBanner.style.display = 'block';
-                    } else {
-                        alertBanner.style.display = 'none';
-                    }
+                    alertText.textContent = data.safety_alert;
+                    alertBanner.style.display = 'block';
                 } else if (alertBanner) {
                     alertBanner.style.display = 'none';
                 }
 
-                // Frases H e P com textos resolvidos (máximo 6 cada)
-                if (data.details) {
-                    if (data.details.h_phrases_texts && data.details.h_phrases_texts.length > 0) {
-                        document.getElementById('pdFrasesH').innerHTML = data.details.h_phrases_texts
-                            .slice(0, 6).map(h => `<li><strong>${h.code}</strong> – ${h.text}</li>`).join('');
-                    } else {
-                        document.getElementById('pdFrasesH').innerHTML = '';
-                    }
-                    if (data.details.p_phrases_texts && data.details.p_phrases_texts.length > 0) {
-                        document.getElementById('pdFrasesP').innerHTML = data.details.p_phrases_texts
-                            .slice(0, 6).map(p => `<li><strong>${p.code}</strong> – ${p.text}</li>`).join('');
-                    } else {
-                        document.getElementById('pdFrasesP').innerHTML = '';
-                    }
+                // Frases H e P com textos resolvidos (máximo 6 cada) lendo diretamente dos arrays data.h_phrases e data.p_phrases
+                if (data.h_phrases && Array.isArray(data.h_phrases) && data.h_phrases.length > 0) {
+                    // Assume que os arrays podem conter objetos {code, text} ou apenas strings
+                    document.getElementById('pdFrasesH').innerHTML = data.h_phrases.slice(0, 6).map(h => {
+                        if (typeof h === 'object' && h.code) return `<li><strong>${h.code}</strong> – ${h.text || ''}</li>`;
+                        return `<li>${h}</li>`;
+                    }).join('');
+                } else {
+                    document.getElementById('pdFrasesH').innerHTML = '';
+                }
+
+                if (data.p_phrases && Array.isArray(data.p_phrases) && data.p_phrases.length > 0) {
+                    document.getElementById('pdFrasesP').innerHTML = data.p_phrases.slice(0, 6).map(p => {
+                        if (typeof p === 'object' && p.code) return `<li><strong>${p.code}</strong> – ${p.text || ''}</li>`;
+                        return `<li>${p}</li>`;
+                    }).join('');
+                } else {
+                    document.getElementById('pdFrasesP').innerHTML = '';
                 }
 
                 // Habilita o botão Salvar Receita
