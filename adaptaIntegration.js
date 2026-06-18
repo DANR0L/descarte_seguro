@@ -2,7 +2,7 @@
 const ADAPTA_CONFIG = {
     skillId: "019ed83c-00bc-7790-b1ab-f301b8fb3111",
     // Usando a Vercel Serverless Function como proxy para evitar erros de CORS
-    api_base_url: "/api/adapta-one/ghs-classify"
+    api_base_url: "/api/classify"
 };
 
 window.renderSafetyAlert = function(data) {
