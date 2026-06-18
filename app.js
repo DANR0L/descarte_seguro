@@ -2139,26 +2139,50 @@ async function searchPubChem(query) {
                 // Delegação GHS: A inteligência da Adapta ONE agora decide a redundância do GHS07
                 
                 // === MERGE: Safety Alert (Banner Crítico) ===
-                const alertContainerScreen = document.getElementById('pdSafetyAlert');
-                const alertTextScreen = document.getElementById('pdSafetyAlertText');
-                const alertContainerPrint = document.getElementById('printSafetyAlert');
-                const alertTextPrint = document.getElementById('printSafetyAlertText');
+                const safetyAlert = aiResult.safety_alert || null;
+                const existingAlert = document.getElementById('adapta-safety-alert');
                 
-                console.log("[Adapta ONE] Verificando safety_alert na resposta:", aiResult.safety_alert);
+                if (existingAlert) existingAlert.remove();
 
-                if (aiResult.safety_alert) {
-                    console.log("[Adapta ONE] Ativando banner de segurança visual!");
-                    if (alertContainerScreen && alertTextScreen) {
-                        alertTextScreen.textContent = `⚠️ ALERTA DE SEGURANÇA: ${aiResult.safety_alert}`;
-                        alertContainerScreen.style.display = 'block';
+                if (safetyAlert) {
+                    console.log("[Adapta ONE] Ativando banner de segurança visual GLOBAL!");
+                    
+                    const alertDiv = document.createElement('div');
+                    alertDiv.id = 'adapta-safety-alert';
+                    alertDiv.setAttribute('role', 'alert');
+                    alertDiv.setAttribute('aria-live', 'assertive');
+                    alertDiv.textContent = `⚠️ ALERTA DE SEGURANÇA: ${String(safetyAlert)}`;
+
+                    alertDiv.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        z-index: 2147483647;
+                        background: #dc2626;
+                        color: #ffffff;
+                        font-weight: 800;
+                        font-size: 1.25rem;
+                        text-align: center;
+                        padding: 1rem;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+                        animation: adapta-safety-blink 1s infinite;
+                        pointer-events: auto;
+                    `;
+
+                    if (!document.getElementById('adapta-safety-styles')) {
+                        const style = document.createElement('style');
+                        style.id = 'adapta-safety-styles';
+                        style.textContent = `
+                            @keyframes adapta-safety-blink {
+                                0%, 100% { opacity: 1; }
+                                50% { opacity: 0.35; }
+                            }
+                        `;
+                        document.head.appendChild(style);
                     }
-                    if (alertContainerPrint && alertTextPrint) {
-                        alertTextPrint.textContent = `⚠️ ALERTA: ${aiResult.safety_alert}`;
-                        alertContainerPrint.style.display = 'block';
-                    }
-                } else {
-                    if (alertContainerScreen) alertContainerScreen.style.display = 'none';
-                    if (alertContainerPrint) alertContainerPrint.style.display = 'none';
+                    
+                    document.body.prepend(alertDiv);
                 }
 
                 const picContainer = document.getElementById('pdPictogramas');
