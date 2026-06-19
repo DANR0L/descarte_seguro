@@ -1628,7 +1628,10 @@ async function searchPubChem(query) {
         const unifiedOnu = document.getElementById('pdOnu') ? document.getElementById('pdOnu').textContent : '';
         const unifiedClass = document.getElementById('pdClasse') ? document.getElementById('pdClasse').textContent : '';
         
+        let maxH = 6;
         let maxP = 6;
+        if(configVol === "A") { maxH = 3; maxP = 3; }
+        else if(configVol === "B") { maxH = 4; maxP = 4; }
 
         const hLisNodes = Array.from(document.getElementById('pdFrasesH').children);
         const pLisNodes = Array.from(document.getElementById('pdFrasesP').children);

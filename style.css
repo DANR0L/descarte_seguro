@@ -100,6 +100,8 @@ body { background-color: var(--bg-dark); color: var(--text-primary); line-height
     
     .print-grid-2col.phrases-grid { flex: 1 1 0px; min-height: 0; border-bottom: 1px solid black; overflow: hidden; }
     .print-grid-2col.phrases-grid > div { overflow: hidden; display: flex; flex-direction: column; }
+    .print-grid-2col.phrases-grid > div:first-child { flex: 1 1 35%; width: 35%; }
+    .print-grid-2col.phrases-grid > div:last-child { flex: 1 1 65%; width: 65%; }
     
     .print-grid-2col.info-grid { flex: 0 0 auto; border-bottom: none; }
 
