@@ -70,16 +70,20 @@ const KEYWORDS = {
 };
 
 const INCOMPATIBILITY_MATRIX = [
-  { a: "acid_inorganic", b: "hypochlorite", gas: "Cl2", desc: "[CRITICAL] Ácidos + Hipocloritos -> Liberação de gás cloro (Cl2) tóxico, asfixiante e corrosivo. Evite a mistura; use EPI completo e ventilação." },
-  { a: "acid_organic", b: "hypochlorite", gas: "Cl2", desc: "[CRITICAL] Ácidos + Hipocloritos -> Liberação de gás cloro (Cl2) tóxico, asfixiante e corrosivo. Evite a mistura; use EPI completo e ventilação." },
-  { a: "acid_inorganic", b: "cyanide", gas: "HCN", desc: "[FATAL] Ácidos + Cianetos -> Liberação de Gás Cianídrico (HCN), extremamente tóxico e letal. Risco de morte imediata por inalação." },
-  { a: "acid_organic", b: "cyanide", gas: "HCN", desc: "[FATAL] Ácidos + Cianetos -> Liberação de Gás Cianídrico (HCN), extremamente tóxico e letal. Risco de morte imediata por inalação." },
-  { a: "acid_inorganic", b: "sulfide", gas: "H2S", desc: "[FATAL] Ácidos + Sulfetos -> Liberação de Gás Sulfídrico (H2S), altamente tóxico e inflamável." },
-  { a: "acid_organic", b: "sulfide", gas: "H2S", desc: "[FATAL] Ácidos + Sulfetos -> Liberação de Gás Sulfídrico (H2S), altamente tóxico e inflamável." },
-  { a: "oxidizer", b: "flammable", gas: null, desc: "[CRITICAL] Oxidante + Inflamável -> Risco extremo de incêndio e explosão. Reação violenta." },
-  { a: "acid_inorganic", b: "base", gas: null, desc: "[WARNING] Ácido + Base -> Reação de neutralização fortemente exotérmica. Risco de fervura, projeção de material corrosivo e ruptura do frasco." },
-  { a: "acid_organic", b: "base", gas: null, desc: "[WARNING] Ácido + Base -> Reação de neutralização exotérmica. Risco de respingos corrosivos." },
-  { a: "base", b: "reactive_metal", gas: "H2", desc: "[CRITICAL] Base Forte + Metal Reativo -> Liberação de gás hidrogênio (H2), altamente inflamável e explosivo." }
+  { "a": "acid_inorganic", "b": "hypochlorite", "gas": "Cl2", "desc": "[CRITICAL] Ácidos + Hipocloritos → Liberação de gás cloro (Cl2) tóxico, asfixiante e corrosivo. Evite a mistura; use EPI completo e ventilação." },
+  { "a": "acid_organic", "b": "hypochlorite", "gas": "Cl2", "desc": "[CRITICAL] Ácidos + Hipocloritos → Liberação de gás cloro (Cl2) tóxico, asfixiante e corrosivo." },
+  { "a": "base", "b": "hypochlorite", "gas": "NH2Cl", "desc": "[CRITICAL] Amônia/Aminas (Bases) + Hipocloritos → Liberação de Cloraminas (NH2Cl), gases altamente tóxicos e irritantes para as vias respiratórias." },
+  { "a": "acid_inorganic", "b": "cyanide", "gas": "HCN", "desc": "[FATAL] Ácidos + Cianetos → Liberação de Gás Cianídrico (HCN), extremamente tóxico e letal. Risco de morte imediata por inalação." },
+  { "a": "acid_organic", "b": "cyanide", "gas": "HCN", "desc": "[FATAL] Ácidos + Cianetos → Liberação de Gás Cianídrico (HCN), letal por inalação." },
+  { "a": "acid_inorganic", "b": "sulfide", "gas": "H2S", "desc": "[FATAL] Ácidos + Sulfetos → Liberação de Gás Sulfídrico (H2S), altamente tóxico, asfixiante e inflamável." },
+  { "a": "acid_organic", "b": "sulfide", "gas": "H2S", "desc": "[FATAL] Ácidos + Sulfetos → Liberação de Gás Sulfídrico (H2S)." },
+  { "a": "oxidizer", "b": "flammable", "gas": null, "desc": "[CRITICAL] Oxidante + Inflamável → Risco extremo de incêndio e explosão. Reação violenta e espontânea." },
+  { "a": "oxidizer", "b": "acid_organic", "gas": null, "desc": "[CRITICAL] Oxidantes + Ácidos Orgânicos → Reação violenta com risco de ignição espontânea, fervura e explosão." },
+  { "a": "acid_inorganic", "b": "flammable", "gas": "NOx", "desc": "[CRITICAL] Ácidos Inorgânicos Fortes (ex: Nítrico) + Solventes Inflamáveis → Reação extremamente violenta, risco de explosão e liberação de gases nitrosos (NOx) letais." },
+  { "a": "acid_inorganic", "b": "base", "gas": null, "desc": "[WARNING] Ácido + Base → Reação de neutralização fortemente exotérmica. Risco de fervura, projeção de material corrosivo e ruptura do frasco." },
+  { "a": "acid_organic", "b": "base", "gas": null, "desc": "[WARNING] Ácido + Base → Reação de neutralização exotérmica. Risco de aquecimento e respingos." },
+  { "a": "base", "b": "reactive_metal", "gas": "H2", "desc": "[CRITICAL] Base Forte + Metal Reativo (Alumínio/Zinco) → Liberação de gás hidrogênio (H2), altamente inflamável e explosivo." },
+  { "a": "acid_inorganic", "b": "reactive_metal", "gas": "H2", "desc": "[CRITICAL] Ácido Forte + Metal Reativo → Liberação rápida de gás hidrogênio (H2), altamente inflamável e explosivo." }
 ];
 
 const CLASSIFICATION_RULES = [
