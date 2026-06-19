@@ -6,7 +6,8 @@ export default function handler(req, res) {
   }
 
   try {
-    const { components } = req.body || {};
+    // Both 'components' and 'substances' are accepted.
+    const components = req.body.components || req.body.substances || [];
 
     if (!Array.isArray(components) || components.length === 0) {
       return res.status(400).json({ error: 'Invalid request body. Provide an array of components with name and percentage.' });
@@ -16,8 +17,8 @@ export default function handler(req, res) {
     const parsed = [];
 
     for (const item of components) {
-      const name = typeof item.name === 'string' ? item.name.trim() : '';
-      const percentage = parseFloat(item.percentage);
+      const name = typeof item.name === 'string' ? item.name.trim() : typeof item.Common_Name_PT === 'string' ? item.Common_Name_PT.trim() : '';
+      const percentage = parseFloat(item.percentage || item.fraction);
 
       if (!name) {
         return res.status(400).json({ error: 'All components must have a non-empty name.' });
@@ -29,124 +30,222 @@ export default function handler(req, res) {
       parsed.push({ name, percentage });
     }
 
-    const roundedTotal = Math.round(total * 100) / 100;
-    if (roundedTotal !== 100) {
-      return res.status(400).json({ error: `Component percentages must sum to 100. Current sum: ${roundedTotal}.` });
-    }
-
     const analysis = analyzeMixture(parsed);
-    const classification = classifyMixture(analysis);
+    const result = classifyMixture(analysis);
 
-    return res.status(200).json({
-      un_number: classification.un_number,
-      proper_shipping_name: classification.proper_shipping_name,
-      risk_class: classification.risk_class,
-      risk_number: classification.risk_number,
-      pictograms: classification.pictograms,
-      h_phrases: classification.h_phrases,
-      p_phrases: classification.p_phrases,
-      safety_alert: classification.safety_alert,
-      incompatibilities: classification.incompatibilities,
-    });
-  } catch (err) {
-    console.error('classify API error:', err);
-    return res.status(500).json({ error: 'Internal server error during classification.' });
+    const detailedResult = {
+      ...result,
+      details: {
+        components: parsed,
+        total_percentage: total,
+        fractions: analysis.fractions,
+        present_classes: analysis.present,
+        dominant_class: analysis.dominant,
+        dominant_percentage: analysis.dominantPct,
+        incompatibilities: analysis.incompatibilities,
+        h_phrases_texts: result.h_phrases.map(code => ({ code, text: H_PHRASES[code] || '' })),
+        p_phrases_texts: result.p_phrases.map(code => ({ code, text: P_PHRASES[code] || '' }))
+      }
+    };
+
+    return res.status(200).json(detailedResult);
+
+  } catch (error) {
+    console.error('Error in /api/classify:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
 
 const KEYWORDS = {
-  acid: [
-    'acid', 'ácido', 'acido', 'acetic', 'acético', 'acetico', 'sulfuric', 'sulfúrico', 'sulfurico',
-    'hydrochloric', 'clorídrico', 'cloridrico', 'muriatic', 'muriático', 'muriatico', 'nitric', 'nítrico', 'nitrico',
-    'phosphoric', 'fosfórico', 'fosforico', 'citric', 'cítrico', 'citrico', 'formic', 'fórmico', 'formico',
-    'oxalic', 'oxálico', 'oxalico', 'lactic', 'láctico', 'lactico', 'tartaric', 'tártarico', 'tartarico',
-    'peracetic', 'peracético', 'peracetico', 'chloroacetic', 'cloroacético', 'cloroacetico',
-    'fluorhydric', 'fluorhídrico', 'fluorhidrico', 'hydrofluoric', 'fluorídrico', 'fluoridrico',
-    'bromic', 'brómico', 'bromico', 'iodic', 'iódico', 'iodico', 'chromic', 'crómico', 'cromico',
-    'sulfamic', 'sulfâmico', 'sulfamico', 'toluenesulfonic', 'toluenosulfônico', 'toluenosulfonico',
-    'boric', 'bórico', 'borico', 'carbonic', 'carbónico', 'carbonico', 'hypochlorous', 'hipocloroso', 'perchloric', 'perclórico', 'perclorico',
-  ],
-  base: [
-    'base', 'bas', 'sodium hydroxide', 'potassium hydroxide', 'ammonia', 'amônia', 'amoniacal', 'ammoniacal',
-    'ammonium hydroxide', 'hidróxido de amônio', 'hidroxido de amonio', 'hidróxido de amónio',
-    'calcium hydroxide', 'magnesium hydroxide', 'lithium hydroxide', 'barium hydroxide', 'strontium hydroxide',
-    'hidróxido de sódio', 'hidroxido de sodio', 'hidróxido de sódio', 'hidróxido de potássio', 'hidroxido de potasio',
-    'hidróxido de cálcio', 'hidroxido de calcio', 'hidróxido de magnésio', 'hidroxido de magnesio',
-    'hidróxido de lítio', 'hidroxido de litio', 'hidróxido de bário', 'hidroxido de bario',
-    'soda cáustica', 'soda caustica', 'potassa cáustica', 'potassa caustica', 'cal viva', 'cal apagada',
-    'lime', 'slaked lime', 'quicklime', 'caustic', 'cáustico', 'caustico', 'alkali', 'alkaline', 'alcalino', 'alcalina',
-    'potash', 'soda ash', 'sodium carbonate', 'potassium carbonate', 'washing soda', 'bicarbonate',
-  ],
-  flammable: [
-    'alcohol', 'álcool', 'alcool', 'ethanol', 'etanol', 'methanol', 'metanol', 'propanol', 'isopropanol', 'isopropyl alcohol',
-    'álcool etílico', 'alcool etilico', 'álcool metílico', 'alcool metilico', 'álcool isopropílico', 'alcool isopropilico',
-    'gasoline', 'gasolina', 'petrol', 'diesel', 'kerosene', 'querosene', 'naphtha', 'nafta', 'acetone', 'acetona',
-    'ether', 'éter', 'eter', 'benzene', 'benzeno', 'toluene', 'tolueno', 'xylene', 'xileno', 'hexane', 'heptane',
-    'pentane', 'cyclohexane', 'cyclohexanone', 'methyl ethyl ketone', 'mek', 'butanone', 'ethyl acetate', 'acetato de etila',
-    'methyl acetate', 'acetato de metila', 'isopropyl acetate', 'acetato de isopropila', 'butyl acetate', 'acetato de butila',
-    'formaldehyde', 'formol', 'formaldeído', 'acetaldehyde', 'acetaldeído', 'propionaldehyde', 'butyraldehyde',
-    'thinner', 'reducer', 'diluent', 'diluente', 'solvent', 'solvente', 'paint thinner', 'tinner', 'tinta', 'paint',
-    'shellac', 'goma laca', 'resin', 'resina', 'turpentine', 'trementina', 'mineral spirits', 'white spirit',
-    'stoddard solvent', 'hydrocarbon', 'hidrocarboneto', 'hydrocarbon', 'fuel', 'combustível', 'combustible',
-    'propane', 'propano', 'butane', 'butano', 'lpg', 'gpl', 'natural gas', 'gás natural', 'gas natural',
-    'ethylene', 'etileno', 'propylene', 'propileno', 'acetylene', 'acetileno', 'vinyl', 'vynil', 'monomer', 'monómero',
-    'peroxide', 'peróxido', 'peroxido', 'organic peroxide', 'peróxido orgânico', 'peroxido organico',
-  ],
-  oxidizer: [
-    'oxidizer', 'oxidante', 'oxidiser', 'oxidizing', 'peroxide', 'peróxido', 'peroxido', 'hydrogen peroxide', 'peróxido de hidrogênio',
-    'peróxido de hidrogénio', 'peroxido de hidrogeno', 'agua oxigenada', 'água oxigenada', 'peróxido de sódio', 'peroxido de sodio',
-    'peroxide de barium', 'peróxido de bário', 'peroxido de bario', 'peroxide de magnésio', 'peróxido de magnésio', 'peroxido de magnesio',
-    'sodium hypochlorite', 'hipoclorito de sódio', 'hipoclorito de sodio', 'hypochlorite', 'hipoclorito', 'bleach', 'água sanitária', 'cloro',
-    'chlorine', 'cloro', 'sodium chlorate', 'potassium chlorate', 'chlorate', 'clorato', 'perchlorate', 'perclorato', 'perchloric acid',
-    'nitrato', 'nitrate', 'sodium nitrate', 'potassium nitrate', 'ammonium nitrate', 'nitrato de amônio', 'nitrato de amonio', 'nitrato de amónio',
-    'permanganate', 'permanganato', 'potassium permanganate', 'permanganato de potássio', 'permanganato de potasio', 'permanganato de potássio',
-    'dichromate', 'dicromato', 'potassium dichromate', 'dicromato de potássio', 'dicromato de potasio', 'sodium dichromate', 'dicromato de sódio',
-    'chromate', 'cromato', 'persulfate', 'persulfato', 'peroxidisulfate', 'peróxido de enxofre', 'peroxodisulfate',
-    'ozone', 'ozônio', 'ozono', 'fluorine', 'flúor', 'fluor', 'bromine', 'bromo', 'nitric acid', 'nitrogen tetroxide',
-    'perclórico', 'perclorico', 'clorato', 'nitrato', 'permanganato', 'dicromato', 'cromato', 'persulfato',
-  ],
-  toxic: [
-    'toxic', 'tóxico', 'toxico', 'poison', 'veneno', 'cyanide', 'cianeto', 'cyanato', 'cianato', 'hydrocyanic acid', 'ácido cianídrico',
-    'acido cianhidrico', 'ácido cianhídrico', 'sodium cyanide', 'cianeto de sódio', 'cianeto de sodio', 'potassium cyanide', 'cianeto de potássio',
-    'cianeto de potasio', 'arsenic', 'arsênio', 'arsenico', 'mercury', 'mercúrio', 'mercurio', 'lead', 'chumbo', 'plomo', 'cadmium', 'cádmio',
-    'cadmio', 'chromium', 'cromo', 'hexavalent', 'hexavalente', 'nickel', 'níquel', 'niquel', 'beryllium', 'berílio', 'berilio',
-    'thallium', 'tálio', 'talio', 'selenium', 'selênio', 'selenio', 'antimony', 'antimônio', 'antimonio', 'phenol', 'fenol',
-    'formaldehyde', 'formaldeído', 'formol', 'methanol', 'metanol', 'carbon tetrachloride', 'tetracloreto de carbono',
-    'tetrachloromethane', 'tetraclorometano', 'chloroform', 'clorofórmio', 'cloroformio', 'trichloroethylene', 'tricloroetileno',
-    'tetrachloroethylene', 'tetracloroetileno', 'pesticide', 'pesticida', 'herbicide', 'herbicida', 'insecticide', 'inseticida',
-    'fungicide', 'fungicida', 'rodenticide', 'rodenticida', 'fumigant', 'fumigante', 'nematicide', 'carbamate', 'carbamato', 'organophosphate',
-    'organofosforado', 'organofosforo', 'phosgene', 'fosgênio', 'fosgenio', 'mustard gas', 'gás mostarda', 'gas mostaza',
-    'hydrogen sulfide', 'sulfeto de hidrogênio', 'sulfeto de hidrogénio', 'sulfuro de hidrogeno', 'ammonia', 'amônia', 'amoniaco',
-    'chlorine', 'cloro', 'phosphine', 'fosfina', 'arsine', 'arsina', 'sibine', 'stibine', 'hydrogen selenide', 'seleneto de hidrogênio',
-    'nitrobenzene', 'nitrobenzeno', 'aniline', 'anilina', 'benzidine', 'benzidina', 'hydrazine', 'hidrazina', 'methylamine', 'metilamina',
-    'ethylene glycol', 'etilenoglicol', 'antifreeze', 'anticongelante', 'coolant', 'refrigerante', 'ethylene oxide', 'óxido de etileno',
-    'oxido de etileno', 'acrylonitrile', 'acrilonitrila', 'acetonitrile', 'acetonitrila', 'benzene', 'benzeno', 'asbestos', 'amianto',
-    'silica', 'silica', 'quartz', 'quartzo', 'respirable', 'respirável', 'carcinogenic', 'carcinogênico', 'carcinogenico', 'mutagenic', 'mutagênico',
-  ],
+  acid_inorganic: ["sulfurico", "sulfúrico", "nitrico", "nítrico", "cloridrico", "clorídrico", "fosforico", "fosfórico", "fluoridrico", "fluorídrico"],
+  acid_organic: ["acetico", "acético", "formico", "fórmico", "citrico", "cítrico"],
+  base: ["hidroxido", "hidróxido", "soda", "potassa", "amonia", "amônia", "amina"],
+  flammable: ["alcool", "álcool", "etanol", "metanol", "isopropanol", "acetona", "hexano", "tolueno", "xileno", "solvente", "eter", "éter", "acetato"],
+  oxidizer: ["peroxido", "peróxido", "clorato", "nitrato", "permanganato", "dicromato", "persulfato"],
+  cyanide: ["cianeto", "cyanide"],
+  sulfide: ["sulfeto", "sulfide"],
+  hypochlorite: ["hipoclorito", "agua sanitaria", "água sanitária", "cloro"],
+  toxic_acute: ["cloroformio", "clorofórmio", "diclorometano", "fenol", "formol", "formaldeido", "formaldeído", "anilina", "mercurio", "mercúrio"],
+  reactive_metal: ["aluminio em po", "alumínio em pó", "zinco em po", "zinco em pó", "sodio metalico", "sódio metálico"]
 };
 
 const INCOMPATIBILITY_MATRIX = [
-  { a: 'acid', b: 'hypochlorite', gas: 'Cl2', desc: 'Ácido + hipoclorito libera gás cloro (Cl2) tóxico.' },
-  { a: 'acid', b: 'cyanide', gas: 'HCN', desc: 'Ácido + cianeto libera ácido cianídrico (HCN) letal.' },
-  { a: 'acid', b: 'base', gas: null, desc: 'Ácido + base reage exotermicamente (neutralização violenta).' },
-  { a: 'acid', b: 'flammable', gas: null, desc: 'Ácido + inflamável pode gerar calor e vapores inflamáveis.' },
-  { a: 'oxidizer', b: 'flammable', gas: null, desc: 'Oxidante + inflamável pode causar incêndio ou explosão.' },
-  { a: 'oxidizer', b: 'organic', gas: null, desc: 'Oxidante forte + materiais orgânicos pode gerar explosão.' },
-  { a: 'oxidizer', b: 'acid', gas: null, desc: 'Oxidante + ácido pode liberar gases tóxicos e intensificar reação.' },
-  { a: 'base', b: 'flammable', gas: null, desc: 'Base + inflamável pode acelerar decomposição ou reação exotérmica.' },
-  { a: 'acid', b: 'sulfide', gas: 'H2S', desc: 'Ácido + sulfeto libera gás sulfídrico (H2S) tóxico.' },
-  { a: 'acid', b: 'nitrite', gas: 'NOx', desc: 'Ácido + nitrito libera óxidos de nitrogênio (NOx) tóxicos.' },
-  { a: 'acid', b: 'carbide', gas: 'C2H2', desc: 'Ácido + carbeto libera acetileno (C2H2) inflamável.' },
-  { a: 'water', b: 'alkali metal', gas: 'H2', desc: 'Água + metal alcalino libera hidrogênio (H2) inflamável.' },
-  { a: 'ammonia', b: 'chlorine', gas: null, desc: 'Amônia + cloro forma cloraminas tóxicas.' },
-  { a: 'ammonia', b: 'hypochlorite', gas: null, desc: 'Amônia + hipoclorito forma cloraminas tóxicas e explosivas.' },
-  { a: 'acid', b: 'chlorate', gas: 'ClO2/Cl2', desc: 'Ácido + clorato pode liberar dióxido de cloro e cloro.' },
-  { a: 'acid', b: 'perchlorate', gas: 'ClO2', desc: 'Ácido + perclorato pode liberar dióxido de cloro explosivo.' },
-  { a: 'nitric acid', b: 'organic', gas: null, desc: 'Ácido nítrico + matéria orgânica pode causar explosão.' },
-  { a: 'nitric acid', b: 'flammable', gas: null, desc: 'Ácido nítrico + inflamável pode causar incêndio/explosão.' },
-  { a: 'sulfuric acid', b: 'water', gas: null, desc: 'Ácido sulfúrico concentrado + água libera calor intenso.' },
-  { a: 'oxidizer', b: 'reducer', gas: null, desc: 'Oxidante + redutor reage de forma violenta.' },
+  { a: "acid_inorganic", b: "hypochlorite", gas: "Cl2", desc: "[CRITICAL] Ácidos + Hipocloritos -> Liberação de gás cloro (Cl2) tóxico, asfixiante e corrosivo. Evite a mistura; use EPI completo e ventilação." },
+  { a: "acid_organic", b: "hypochlorite", gas: "Cl2", desc: "[CRITICAL] Ácidos + Hipocloritos -> Liberação de gás cloro (Cl2) tóxico, asfixiante e corrosivo. Evite a mistura; use EPI completo e ventilação." },
+  { a: "acid_inorganic", b: "cyanide", gas: "HCN", desc: "[FATAL] Ácidos + Cianetos -> Liberação de Gás Cianídrico (HCN), extremamente tóxico e letal. Risco de morte imediata por inalação." },
+  { a: "acid_organic", b: "cyanide", gas: "HCN", desc: "[FATAL] Ácidos + Cianetos -> Liberação de Gás Cianídrico (HCN), extremamente tóxico e letal. Risco de morte imediata por inalação." },
+  { a: "acid_inorganic", b: "sulfide", gas: "H2S", desc: "[FATAL] Ácidos + Sulfetos -> Liberação de Gás Sulfídrico (H2S), altamente tóxico e inflamável." },
+  { a: "acid_organic", b: "sulfide", gas: "H2S", desc: "[FATAL] Ácidos + Sulfetos -> Liberação de Gás Sulfídrico (H2S), altamente tóxico e inflamável." },
+  { a: "oxidizer", b: "flammable", gas: null, desc: "[CRITICAL] Oxidante + Inflamável -> Risco extremo de incêndio e explosão. Reação violenta." },
+  { a: "acid_inorganic", b: "base", gas: null, desc: "[WARNING] Ácido + Base -> Reação de neutralização fortemente exotérmica. Risco de fervura, projeção de material corrosivo e ruptura do frasco." },
+  { a: "acid_organic", b: "base", gas: null, desc: "[WARNING] Ácido + Base -> Reação de neutralização exotérmica. Risco de respingos corrosivos." },
+  { a: "base", b: "reactive_metal", gas: "H2", desc: "[CRITICAL] Base Forte + Metal Reativo -> Liberação de gás hidrogênio (H2), altamente inflamável e explosivo." }
 ];
+
+const CLASSIFICATION_RULES = [
+  {
+    conditions: ["flammable", "toxic_acute", "acid_inorganic"],
+    un_number: "UN3286",
+    proper_shipping_name: "LÍQUIDO INFLAMÁVEL, TÓXICO, CORROSIVO, N.E.",
+    risk_class: "3 (6.1, 8)",
+    pictograms: ["GHS02", "GHS06", "GHS05"],
+    h_phrases: ["H225", "H301", "H311", "H331", "H314"]
+  },
+  {
+    conditions: ["flammable", "toxic_acute", "acid_organic"],
+    un_number: "UN3286",
+    proper_shipping_name: "LÍQUIDO INFLAMÁVEL, TÓXICO, CORROSIVO, N.E.",
+    risk_class: "3 (6.1, 8)",
+    pictograms: ["GHS02", "GHS06", "GHS05"],
+    h_phrases: ["H225", "H301", "H311", "H331", "H314"]
+  },
+  {
+    conditions: ["flammable", "toxic_acute", "base"],
+    un_number: "UN3286",
+    proper_shipping_name: "LÍQUIDO INFLAMÁVEL, TÓXICO, CORROSIVO, N.E.",
+    risk_class: "3 (6.1, 8)",
+    pictograms: ["GHS02", "GHS06", "GHS05"],
+    h_phrases: ["H225", "H301", "H311", "H331", "H314"]
+  },
+  {
+    conditions: ["flammable", "toxic_acute"],
+    un_number: "UN1992",
+    proper_shipping_name: "LÍQUIDO INFLAMÁVEL, TÓXICO, N.E.",
+    risk_class: "3 (6.1)",
+    pictograms: ["GHS02", "GHS06"],
+    h_phrases: ["H225", "H301", "H311", "H331"]
+  },
+  {
+    conditions: ["flammable", "acid_inorganic"],
+    un_number: "UN2924",
+    proper_shipping_name: "LÍQUIDO INFLAMÁVEL, CORROSIVO, N.E.",
+    risk_class: "3 (8)",
+    pictograms: ["GHS02", "GHS05"],
+    h_phrases: ["H225", "H314"]
+  },
+  {
+    conditions: ["flammable", "acid_organic"],
+    un_number: "UN2924",
+    proper_shipping_name: "LÍQUIDO INFLAMÁVEL, CORROSIVO, N.E.",
+    risk_class: "3 (8)",
+    pictograms: ["GHS02", "GHS05"],
+    h_phrases: ["H225", "H314"]
+  },
+  {
+    conditions: ["flammable", "base"],
+    un_number: "UN2924",
+    proper_shipping_name: "LÍQUIDO INFLAMÁVEL, CORROSIVO, N.E.",
+    risk_class: "3 (8)",
+    pictograms: ["GHS02", "GHS05"],
+    h_phrases: ["H225", "H314"]
+  },
+  {
+    conditions: ["toxic_acute", "acid_inorganic"],
+    un_number: "UN2922",
+    proper_shipping_name: "LÍQUIDO CORROSIVO, TÓXICO, N.E.",
+    risk_class: "8 (6.1)",
+    pictograms: ["GHS05", "GHS06"],
+    h_phrases: ["H314", "H301", "H311", "H331"]
+  },
+  {
+    conditions: ["toxic_acute", "acid_organic"],
+    un_number: "UN2922",
+    proper_shipping_name: "LÍQUIDO CORROSIVO, TÓXICO, N.E.",
+    risk_class: "8 (6.1)",
+    pictograms: ["GHS05", "GHS06"],
+    h_phrases: ["H314", "H301", "H311", "H331"]
+  },
+  {
+    conditions: ["toxic_acute", "base"],
+    un_number: "UN2922",
+    proper_shipping_name: "LÍQUIDO CORROSIVO, TÓXICO, N.E.",
+    risk_class: "8 (6.1)",
+    pictograms: ["GHS05", "GHS06"],
+    h_phrases: ["H314", "H301", "H311", "H331"]
+  },
+  {
+    conditions: ["flammable"],
+    un_number: "UN1993",
+    proper_shipping_name: "LÍQUIDO INFLAMÁVEL, N.E.",
+    risk_class: "3",
+    pictograms: ["GHS02", "GHS07"],
+    h_phrases: ["H225", "H319", "H336"]
+  },
+  {
+    conditions: ["toxic_acute"],
+    un_number: "UN2810",
+    proper_shipping_name: "LÍQUIDO TÓXICO, ORGÂNICO, N.E.",
+    risk_class: "6.1",
+    pictograms: ["GHS06", "GHS08"],
+    h_phrases: ["H301", "H311", "H331", "H370"]
+  },
+  {
+    conditions: ["acid_inorganic"],
+    un_number: "UN3264",
+    proper_shipping_name: "LÍQUIDO CORROSIVO, ÁCIDO, INORGÂNICO, N.E.",
+    risk_class: "8",
+    pictograms: ["GHS05", "GHS07"],
+    h_phrases: ["H290", "H314", "H335"]
+  },
+  {
+    conditions: ["acid_organic"],
+    un_number: "UN3265",
+    proper_shipping_name: "LÍQUIDO CORROSIVO, ÁCIDO, ORGÂNICO, N.E.",
+    risk_class: "8",
+    pictograms: ["GHS05", "GHS07"],
+    h_phrases: ["H290", "H314", "H335"]
+  },
+  {
+    conditions: ["base"],
+    un_number: "UN3266",
+    proper_shipping_name: "LÍQUIDO CORROSIVO, BÁSICO, INORGÂNICO, N.E.",
+    risk_class: "8",
+    pictograms: ["GHS05", "GHS07"],
+    h_phrases: ["H290", "H314"]
+  },
+  {
+    conditions: ["oxidizer"],
+    un_number: "UN3139",
+    proper_shipping_name: "LÍQUIDO OXIDANTE, N.E.",
+    risk_class: "5.1",
+    pictograms: ["GHS03", "GHS07"],
+    h_phrases: ["H272", "H315", "H319"]
+  }
+];
+
+const H_PHRASES = {
+  "H225": "Líquido e vapores altamente inflamáveis.",
+  "H226": "Líquido e vapores inflamáveis.",
+  "H272": "Pode agravar incêndios; comburente.",
+  "H290": "Pode ser corrosivo para os metais.",
+  "H301": "Tóxico se ingerido.",
+  "H311": "Tóxico em contato com a pele.",
+  "H314": "Provoca queimaduras na pele e lesões oculares graves.",
+  "H315": "Provoca irritação cutânea.",
+  "H319": "Provoca irritação ocular grave.",
+  "H331": "Tóxico se inalado.",
+  "H335": "Pode provocar irritação das vias respiratórias.",
+  "H336": "Pode provocar sonolência ou vertigens.",
+  "H370": "Provoca danos aos órgãos."
+};
+
+const P_PHRASES = {
+  "P210": "Manter afastado do calor, faíscas, chamas abertas e superfícies quentes. Não fumar.",
+  "P233": "Manter o recipiente bem fechado.",
+  "P235": "Conservar em ambiente fresco.",
+  "P260": "Não respirar as poeiras/fumos/gases/névoas/vapores/aerossóis.",
+  "P264": "Lavar as mãos cuidadosamente após manuseamento.",
+  "P271": "Utilizar apenas ao ar livre ou em locais bem ventilados.",
+  "P280": "Usar luvas de proteção/vestuário de proteção/proteção ocular/proteção facial.",
+  "P301+P310": "EM CASO DE INGESTÃO: Contacte imediatamente um CENTRO DE INFORMAÇÃO ANTIVENENOS ou um médico.",
+  "P303+P361+P353": "SE ENTRAR EM CONTACTO COM A PELE (ou o cabelo): despir/retirar imediatamente toda a roupa contaminada. Enxaguar a pele com água/tomar um duche.",
+  "P304+P340": "EM CASO DE INALAÇÃO: retirar a vítima para uma zona ao ar livre e mantê-la em repouso numa posição que não dificulte a respiração.",
+  "P305+P351+P338": "SE ENTRAR EM CONTACTO COM OS OLHOS: enxaguar cuidadosamente com água durante vários minutos. Se usar lentes de contacto, retire-as, se tal lhe for possível. Continuar a enxaguar.",
+  "P310": "Contacte imediatamente um CENTRO DE INFORMAÇÃO ANTIVENENOS ou um médico.",
+  "P403+P235": "Armazenar em local bem ventilado. Conservar em ambiente fresco.",
+  "P405": "Armazenar em local fechado à chave.",
+  "P501": "Eliminar o conteúdo/recipiente de acordo com a legislação local/regional/nacional/internacional."
+};
 
 function normalize(str) {
   return str
@@ -164,25 +263,20 @@ function matchesKeywords(name, keywords) {
 }
 
 function detectClasses(components) {
-  const fractions = { acid: 0, base: 0, flammable: 0, oxidizer: 0, toxic: 0 };
+  const fractions = {};
+  for (const key of Object.keys(KEYWORDS)) {
+    fractions[key] = 0;
+  }
 
   for (const comp of components) {
     const name = comp.name;
     const pct = comp.percentage;
 
-    const isAlcohol = matchesKeywords(name, ['alcohol', 'alcool', 'ethanol', 'etanol', 'methanol', 'metanol', 'propanol', 'isopropanol', 'isopropyl alcohol']);
-    const isEthanol = matchesKeywords(name, ['ethanol', 'etanol', 'ethyl alcohol', 'alcohol', 'alcool etilico', 'alcool etilico', 'alcohol etilico', 'alcool etilico']);
-
-    if (isEthanol || isAlcohol) {
-      fractions.flammable += pct;
-      continue;
+    for (const [key, keywords] of Object.entries(KEYWORDS)) {
+      if (matchesKeywords(name, keywords)) {
+        fractions[key] += pct;
+      }
     }
-
-    if (matchesKeywords(name, KEYWORDS.acid)) fractions.acid += pct;
-    if (matchesKeywords(name, KEYWORDS.base)) fractions.base += pct;
-    if (matchesKeywords(name, KEYWORDS.flammable)) fractions.flammable += pct;
-    if (matchesKeywords(name, KEYWORDS.oxidizer)) fractions.oxidizer += pct;
-    if (matchesKeywords(name, KEYWORDS.toxic)) fractions.toxic += pct;
   }
 
   return fractions;
@@ -191,232 +285,83 @@ function detectClasses(components) {
 function analyzeMixture(components) {
   const fractions = detectClasses(components);
 
-  const present = [];
-  if (fractions.acid > 0) present.push('acid');
-  if (fractions.base > 0) present.push('base');
-  if (fractions.flammable > 0) present.push('flammable');
-  if (fractions.oxidizer > 0) present.push('oxidizer');
-  if (fractions.toxic > 0) present.push('toxic');
+  const present = Object.keys(fractions).filter(k => fractions[k] > 0);
 
   const incompatibilities = [];
   for (const rule of INCOMPATIBILITY_MATRIX) {
     if (present.includes(rule.a) && present.includes(rule.b)) {
-      incompatibilities.push({ pair: [rule.a, rule.b], gas: rule.gas, description: rule.desc });
-    } else if (present.includes(rule.b) && present.includes(rule.a)) {
-      incompatibilities.push({ pair: [rule.b, rule.a], gas: rule.gas, description: rule.desc });
+      incompatibilities.push({ pair: [rule.a, rule.b], gas: rule.gas, description: rule.desc, severity: rule.desc.match(/\[(.*?)\]/) ? rule.desc.match(/\[(.*?)\]/)[1] : 'WARNING' });
     }
   }
 
   const sorted = Object.entries(fractions).sort((a, b) => b[1] - a[1]);
-  const dominant = sorted[0][0];
-  const dominantPct = sorted[0][1];
+  const dominant = sorted[0] ? sorted[0][0] : null;
+  const dominantPct = sorted[0] ? sorted[0][1] : 0;
 
   return { fractions, present, incompatibilities, dominant, dominantPct };
 }
 
-function buildClassifyResult(opts) {
-  return {
-    un_number: opts.un_number,
-    proper_shipping_name: opts.proper_shipping_name,
-    risk_class: opts.risk_class,
-    risk_number: opts.risk_number,
-    pictograms: Array.from(new Set(opts.pictograms)).filter(Boolean),
-    h_phrases: Array.from(new Set(opts.h_phrases)).filter(Boolean),
-    p_phrases: Array.from(new Set(opts.p_phrases)).filter(Boolean),
-    safety_alert: opts.safety_alert,
-    incompatibilities: opts.incompatibilities,
-  };
-}
-
 function classifyMixture(analysis) {
-  const { fractions, present, incompatibilities, dominant, dominantPct } = analysis;
+  const { present, incompatibilities } = analysis;
 
-  const commonP = [
-    'P210: Manter afastado do calor, faíscas, chamas abertas e superfícies quentes. Não fumar.',
-    'P233: Manter o recipiente bem fechado.',
-    'P235: Conservar em ambiente fresco.',
-    'P260: Não respirar as poeiras/fumos/gases/névoas/vapores/aerossóis.',
-    'P264: Lavar as mãos cuidadosamente após manuseamento.',
-    'P271: Utilizar apenas ao ar livre ou em locais bem ventilados.',
-    'P280: Usar luvas de proteção/vestuário de proteção/proteção ocular/proteção facial.',
-    'P301+P312: EM CASO DE INGESTÃO: caso sinta indisposição, contate um CENTRO DE INFORMAÇÃO ANTIVENENOS ou um médico.',
-    'P303+P361+P353: SE ENTRAR EM CONTACTO COM A PELE (ou o cabelo): despir/retirar imediatamente toda a roupa contaminada. Enxaguar a pele com água/tomar um duche.',
-    'P304+P340: EM CASO DE INALAÇÃO: retirar a vítima para uma zona ao ar livre e mantê-la em repouso numa posição que não dificulte a respiração.',
-    'P305+P351+P338: SE ENTRAR EM CONTACTO COM OS OLHOS: enxaguar cuidadosamente com água durante vários minutos. Se usar lentes de contacto, retire-as, se tal lhe for possível. Continuar a enxaguar.',
-    'P310: Contacte imediatamente um CENTRO DE INFORMAÇÃO ANTIVENENOS ou um médico.',
-    'P312: Caso sinta indisposição, contacte um CENTRO DE INFORMAÇÃO ANTIVENENOS ou um médico.',
-    'P330: Enxaguar a boca.',
-    'P403+P235: Armazenar em local bem ventilado. Conservar em ambiente fresco.',
-    'P405: Armazenar em local fechado à chave.',
-    'P501: Eliminar o conteúdo/recipiente de acordo com a legislação local/regional/nacional/internacional.',
-  ];
+  let matchedRule = null;
+  
+  // Sort rules by number of conditions descending to match most specific first
+  const sortedRules = [...CLASSIFICATION_RULES].sort((a, b) => b.conditions.length - a.conditions.length);
 
-  if (dominant === 'flammable') {
-    return buildClassifyResult({
-      un_number: 'UN1170',
-      proper_shipping_name: 'ETHANOL SOLUTION or ALCOHOL SOLUTION (flammable liquid)',
-      risk_class: '3',
-      risk_number: '33',
-      pictograms: ['GHS02', 'GHS07'],
-      h_phrases: [
-        'H225: Líquido e vapores altamente inflamáveis.',
-        'H319: Provoca irritação ocular grave.',
-        'H336: Pode provocar sonolência ou vertigens.',
-      ],
-      p_phrases: commonP,
-      safety_alert: 'Classificado exclusivamente como líquido inflamável (Classe 3). Não aplicável como tóxico Classe 6.1. Evitar fontes de ignição.',
-      incompatibilities,
-    });
+  for (const rule of sortedRules) {
+    if (rule.conditions.every(c => present.includes(c))) {
+      matchedRule = rule;
+      break;
+    }
   }
 
-  if (fractions.acid > 0 && fractions.base > 0) {
-    return buildClassifyResult({
-      un_number: 'UN3264',
-      proper_shipping_name: 'CORROSIVE LIQUID, ACIDIC, INORGANIC, N.O.S. or CORROSIVE LIQUID, BASIC, INORGANIC, N.O.S.',
-      risk_class: '8',
-      risk_number: '80',
-      pictograms: ['GHS05', 'GHS07'],
-      h_phrases: [
-        'H290: Pode ser corrosivo para os metais.',
-        'H314: Provoca queimaduras na pele e lesões oculares graves.',
-        'H315: Provoca irritação cutânea.',
-        'H319: Provoca irritação ocular grave.',
-      ],
-      p_phrases: commonP,
-      safety_alert: 'Mistura ácido-base incompatível. Reação exotérmica de neutralização. Risco de respingos corrosivos.',
-      incompatibilities,
-    });
+  const defaultPPhrases = ['P210', 'P233', 'P260', 'P264', 'P280', 'P303+P361+P353', 'P305+P351+P338', 'P403+P235', 'P501'];
+
+  if (!matchedRule) {
+    if (present.length > 0) {
+      return {
+        un_number: 'UN0000',
+        proper_shipping_name: 'MISTURA PERIGOSA, N.E.',
+        risk_class: 'Variada',
+        risk_number: '',
+        pictograms: ['GHS07'],
+        h_phrases: ['H315', 'H319'],
+        p_phrases: defaultPPhrases,
+        safety_alert: 'Mistura complexa não listada. Consulte um especialista.',
+        incompatibilities
+      };
+    } else {
+      return {
+        un_number: 'UN0000',
+        proper_shipping_name: 'NÃO CLASSIFICADO COMO PERIGOSO',
+        risk_class: '',
+        risk_number: '',
+        pictograms: [],
+        h_phrases: [],
+        p_phrases: [],
+        safety_alert: 'Mistura não apresenta riscos primários nas categorias avaliadas.',
+        incompatibilities
+      };
+    }
   }
 
-  if (fractions.oxidizer > 0 && fractions.flammable > 0) {
-    return buildClassifyResult({
-      un_number: 'UN3139',
-      proper_shipping_name: 'OXIDIZING LIQUID, N.O.S. with flammable component',
-      risk_class: '5.1',
-      risk_number: '50',
-      pictograms: ['GHS03', 'GHS02', 'GHS07'],
-      h_phrases: [
-        'H272: Pode agravar incêndios; comburente.',
-        'H225: Líquido e vapores altamente inflamáveis.',
-        'H302: Nocivo por ingestão.',
-        'H319: Provoca irritação ocular grave.',
-      ],
-      p_phrases: commonP,
-      safety_alert: 'Combinação oxidante + inflamável. Alto risco de incêndio e explosão. Isolar de fontes de ignição e materiais combustíveis.',
-      incompatibilities,
-    });
+  let safety_alert = '';
+  if (incompatibilities.length > 0) {
+    safety_alert = incompatibilities.map(i => i.description).join(' ');
+  } else {
+    safety_alert = 'Mistura classificada com sucesso. Siga as instruções de armazenamento e descarte adequadas.';
   }
 
-  if (fractions.acid > 0 && (fractions.oxidizer > 0 || incompatibilities.some((i) => i.gas))) {
-    return buildClassifyResult({
-      un_number: 'UN3264',
-      proper_shipping_name: 'CORROSIVE LIQUID, ACIDIC, INORGANIC, N.O.S.',
-      risk_class: '8',
-      risk_number: '80',
-      pictograms: ['GHS05', 'GHS03', 'GHS07'],
-      h_phrases: [
-        'H290: Pode ser corrosivo para os metais.',
-        'H314: Provoca queimaduras na pele e lesões oculares graves.',
-        'H272: Pode agravar incêndios; comburente.',
-      ],
-      p_phrases: commonP,
-      safety_alert: 'Ácido com oxidante ou gerador de gases tóxicos. Risco de corrosão, liberação de gases e intensificação de incêndio.',
-      incompatibilities,
-    });
-  }
-
-  if (fractions.acid > 0) {
-    return buildClassifyResult({
-      un_number: 'UN3264',
-      proper_shipping_name: 'CORROSIVE LIQUID, ACIDIC, INORGANIC, N.O.S.',
-      risk_class: '8',
-      risk_number: '80',
-      pictograms: ['GHS05', 'GHS07'],
-      h_phrases: [
-        'H290: Pode ser corrosivo para os metais.',
-        'H314: Provoca queimaduras na pele e lesões oculares graves.',
-        'H315: Provoca irritação cutânea.',
-        'H319: Provoca irritação ocular grave.',
-      ],
-      p_phrases: commonP,
-      safety_alert: 'Mistura ácida. Corrosiva. Evitar contato com pele, olhos e metais. Manter afastado de bases e hipocloritos.',
-      incompatibilities,
-    });
-  }
-
-  if (fractions.base > 0) {
-    return buildClassifyResult({
-      un_number: 'UN3266',
-      proper_shipping_name: 'CORROSIVE LIQUID, BASIC, INORGANIC, N.O.S.',
-      risk_class: '8',
-      risk_number: '80',
-      pictograms: ['GHS05', 'GHS07'],
-      h_phrases: [
-        'H290: Pode ser corrosivo para os metais.',
-        'H314: Provoca queimaduras na pele e lesões oculares graves.',
-        'H315: Provoca irritação cutânea.',
-        'H319: Provoca irritação ocular grave.',
-      ],
-      p_phrases: commonP,
-      safety_alert: 'Mistura básica. Corrosiva. Evitar contato com ácidos e materiais inflamáveis.',
-      incompatibilities,
-    });
-  }
-
-  if (fractions.oxidizer > 0) {
-    return buildClassifyResult({
-      un_number: 'UN3149',
-      proper_shipping_name: 'OXIDIZING LIQUID, N.O.S.',
-      risk_class: '5.1',
-      risk_number: '50',
-      pictograms: ['GHS03', 'GHS07'],
-      h_phrases: [
-        'H272: Pode agravar incêndios; comburente.',
-        'H302: Nocivo por ingestão.',
-        'H314: Provoca queimaduras na pele e lesões oculares graves.',
-        'H319: Provoca irritação ocular grave.',
-      ],
-      p_phrases: commonP,
-      safety_alert: 'Oxidante. Pode intensificar incêndios. Manter isolado de combustíveis, redutores e agentes inflamáveis.',
-      incompatibilities,
-    });
-  }
-
-  if (fractions.toxic > 0) {
-    return buildClassifyResult({
-      un_number: 'UN2810',
-      proper_shipping_name: 'TOXIC LIQUID, ORGANIC, N.O.S.',
-      risk_class: '6.1',
-      risk_number: '60',
-      pictograms: ['GHS06', 'GHS07', 'GHS08'],
-      h_phrases: [
-        'H300: Mortal por ingestão.',
-        'H310: Mortal em contacto com a pele.',
-        'H330: Mortal por inalação.',
-        'H315: Provoca irritação cutânea.',
-        'H319: Provoca irritação ocular grave.',
-        'H373: Pode afetar os órgãos após exposição prolongada ou repetida.',
-      ],
-      p_phrases: commonP,
-      safety_alert: 'Mistura tóxica. Alto risco à saúde. Uso de EPI e ventilação adequada obrigatórios.',
-      incompatibilities,
-    });
-  }
-
-  return buildClassifyResult({
-    un_number: 'UN1993',
-    proper_shipping_name: 'FLAMMABLE LIQUID, N.O.S.',
-    risk_class: '3',
-    risk_number: '33',
-    pictograms: ['GHS02', 'GHS07'],
-    h_phrases: [
-      'H226: Líquido e vapores inflamáveis.',
-      'H315: Provoca irritação cutânea.',
-      'H319: Provoca irritação ocular grave.',
-      'H336: Pode provocar sonolência ou vertigens.',
-    ],
-    p_phrases: commonP,
-    safety_alert: 'Classificação genérica de líquido inflamável. Verificar composição e incompatibilidades antes do manuseio.',
-    incompatibilities,
-  });
+  return {
+    un_number: matchedRule.un_number,
+    proper_shipping_name: matchedRule.proper_shipping_name,
+    risk_class: matchedRule.risk_class,
+    risk_number: '',
+    pictograms: matchedRule.pictograms,
+    h_phrases: matchedRule.h_phrases,
+    p_phrases: defaultPPhrases,
+    safety_alert: safety_alert,
+    incompatibilities
+  };
 }
