@@ -65,7 +65,7 @@ const KEYWORDS = {
   cyanide: ["cianeto", "cyanide"],
   sulfide: ["sulfeto", "sulfide"],
   hypochlorite: ["hipoclorito", "agua sanitaria", "água sanitária", "cloro"],
-  toxic_acute: ["cloroformio", "clorofórmio", "diclorometano", "fenol", "formol", "formaldeido", "formaldeído", "anilina", "mercurio", "mercúrio"],
+  toxic_acute: ["cloroformio", "clorofórmio", "diclorometano", "fenol", "formol", "formaldeido", "formaldeído", "anilina", "mercurio", "mercúrio", "metanol"],
   reactive_metal: ["aluminio em po", "alumínio em pó", "zinco em po", "zinco em pó", "sodio metalico", "sódio metálico"]
 };
 
