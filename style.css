@@ -104,11 +104,12 @@ body { background-color: var(--bg-dark); color: var(--text-primary); line-height
     .print-grid-2col.phrases-grid > div:last-child { flex: 1 1 65%; width: 65%; }
     
     .print-grid-2col.info-grid { flex: 0 0 auto; border-bottom: none; }
+    .print-grid-2col.info-grid > div { padding-top: 0.5mm; padding-bottom: 0.5mm; }
 
     .print-box-title { font-size: 7pt; font-weight: bold; text-transform: uppercase; margin-bottom: 0.5mm; flex: 0 0 auto; }
     .print-phrases { font-size: 6.2pt; line-height: 1.1; overflow: hidden; flex: 1 1 0px; min-height: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 7; }
     .print-phrases ul { margin-left: 2.5mm; padding: 0; margin-bottom: 0; }
-    .print-info-text { font-size: 6.2pt; line-height: 1.1; }
+    .print-info-text { font-size: 5pt; line-height: 1; }
 
     .size-A.form-container { width: 74mm; height: 52mm; border-width: 0.5mm; border-radius: 1.5mm; }
     .size-A .print-title { font-size: 6.5pt; }
@@ -121,7 +122,7 @@ body { background-color: var(--bg-dark); color: var(--text-primary); line-height
     .size-A .print-phrases { font-size: 3.2pt; line-height: 1; -webkit-line-clamp: 10; }
     .size-A .print-phrases ul { margin-left: 1mm; padding-left: 1mm; }
     .size-A .print-phrases li { margin-bottom: 0; }
-    .size-A .print-info-text { font-size: 4.5pt; }
+    .size-A .print-info-text { font-size: 3.5pt; }
 
     .size-B.form-container { width: 105mm; height: 74mm; border-width: 0.7mm; border-radius: 2mm; }
     .size-B .print-title { font-size: 9pt; }
@@ -134,7 +135,7 @@ body { background-color: var(--bg-dark); color: var(--text-primary); line-height
     .size-B .print-phrases { font-size: 4pt; line-height: 1.05; -webkit-line-clamp: 10; }
     .size-B .print-phrases ul { margin-left: 1.5mm; padding-left: 1mm; }
     .size-B .print-phrases li { margin-bottom: 0.1mm; }
-    .size-B .print-info-text { font-size: 5.5pt; }
+    .size-B .print-info-text { font-size: 4.5pt; }
 
     .size-D.form-container { width: 210mm; height: 148mm; border-width: 1.5mm; border-radius: 4mm; }
     .size-D .print-title { font-size: 17pt; }
@@ -145,7 +146,7 @@ body { background-color: var(--bg-dark); color: var(--text-primary); line-height
     .size-D .print-grid-2col > div { padding: 2mm 3mm; }
     .size-D .print-box-title { font-size: 10pt; margin-bottom: 1mm; }
     .size-D .print-phrases { font-size: 8.8pt; -webkit-line-clamp: 10; }
-    .size-D .print-info-text { font-size: 8.8pt; }
+    .size-D .print-info-text { font-size: 7.5pt; }
 }
 
 /* --- Mobile Responsiveness --- */
