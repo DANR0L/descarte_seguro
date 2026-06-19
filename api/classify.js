@@ -57,36 +57,265 @@ export default function handler(req, res) {
 }
 
 const KEYWORDS = {
-  acid_inorganic: ["sulfurico", "sulfúrico", "nitrico", "nítrico", "cloridrico", "clorídrico", "fosforico", "fosfórico", "fluoridrico", "fluorídrico"],
-  acid_organic: ["acetico", "acético", "formico", "fórmico", "citrico", "cítrico"],
-  base: ["hidroxido", "hidróxido", "soda", "potassa", "amonia", "amônia", "amina"],
-  flammable: ["alcool", "álcool", "etanol", "metanol", "isopropanol", "acetona", "hexano", "tolueno", "xileno", "solvente", "eter", "éter", "acetato"],
-  oxidizer: ["peroxido", "peróxido", "clorato", "nitrato", "permanganato", "dicromato", "persulfato"],
-  cyanide: ["cianeto", "cyanide"],
-  sulfide: ["sulfeto", "sulfide"],
-  hypochlorite: ["hipoclorito", "agua sanitaria", "água sanitária", "cloro"],
-  toxic_acute: ["cloroformio", "clorofórmio", "diclorometano", "fenol", "formol", "formaldeido", "formaldeído", "anilina", "mercurio", "mercúrio", "metanol"],
-  reactive_metal: ["aluminio em po", "alumínio em pó", "zinco em po", "zinco em pó", "sodio metalico", "sódio metálico"]
+  acid_inorganic: [
+    "sulfurico", "sulfúrico", "nitrico", "nítrico", "cloridrico", "clorídrico",
+    "fosforico", "fosfórico", "fluoridrico", "fluorídrico", "borico", "bórico",
+    "cromico", "crômico", "perclorico", "perclórico", "sulfuroso"
+  ],
+  acid_organic: [
+    "acetico", "acético", "formico", "fórmico", "citrico", "cítrico",
+    "oxalico", "oxálico", "tartarico", "tartárico", "latico", "lático",
+    "salicilico", "salicílico", "propionico", "propiónico", "butirico", "butírico",
+    "benzoico", "benzóico", "oleico", "oléico", "esteárico"
+  ],
+  base: [
+    "hidroxido", "hidróxido", "soda", "potassa", "potassio", "potássio",
+    "amonia", "amônia", "hidroxido de sodio", "hidróxido de sódio",
+    "hidroxido de potassio", "hidróxido de potássio", "carbonato de sodio",
+    "carbonato de sódio", "bicarbonato", "cal", "calcio", "cálcio",
+    "magnesio", "magnésio", "trietilamina", "dietilamina", "etilamina",
+    "morfina", "anilina", "piridina", "piperidina", "etanolamina",
+    "hidrazina", "ureia", "uréia"
+  ],
+  flammable: [
+    "alcool", "álcool", "etanol", "metanol", "isopropanol", "butanol",
+    "acetona", "hexano", "heptano", "pentano", "tolueno", "xileno",
+    "benzeno", "solvente", "eter", "éter", "acetato", "acetato de etila",
+    "acetato de butila", "dioxano", "tetrahidrofurano", "thf",
+    "ciclohexano", "nafta", "petroleo", "gasolina", "querosene",
+    "estireno", "acrilato", "metacrilato", "acetonitrila",
+    "dimetilformamida", "dmf", "dissulfeto de carbono", "sulfeto de carbono"
+  ],
+  oxidizer: [
+    "peroxido", "peróxido", "peroxido de hidrogenio", "agua oxygenada",
+    "água oxigenada", "clorato", "nitrato", "nitrato de sodio",
+    "nitrato de potassio", "permanganato", "dicromato", "cromato",
+    "persulfato", "perborato", "perclorato", "hipoclorito",
+    "bromato", "iodato", "nitrito", "acido nitrico fumegante",
+    "acido perclorico", "acido crômico"
+  ],
+  cyanide: [
+    "cianeto", "cyanide", "cianeto de sodio", "cianeto de potassio",
+    "cianeto de hidrogenio", "acido cianidrico",
+    "ferrocianeto", "ferricianeto"
+  ],
+  sulfide: [
+    "sulfeto", "sulfide", "sulfeto de sodio", "sulfeto de potassio",
+    "sulfeto de hidrogenio", "acido sulfidrico", "mercaptana",
+    "tiol", "dissulfeto de carbono"
+  ],
+  hypochlorite: [
+    "hipoclorito", "agua sanitaria", "água sanitária", "cloro ativo",
+    "hipoclorito de sodio", "hipoclorito de calcio", "cloro liquido",
+    "cloro", "branqueador", "alvejante"
+  ],
+  toxic_acute: [
+    "cloroformio", "clorofórmio", "diclorometano", "cloreto de metileno",
+    "fenol", "formol", "formaldeido", "formaldeído",
+    "anilina", "acetonitrila", "cianeto", "metanol",
+    "tetracloreto de carbono", "tricloroetileno", "percloroetileno",
+    "acido fluorídrico", "acido oxálico", "nicotina",
+    "composto de mercurio", "composto de chumbo", "composto de arsenio",
+    "composto de cádmio", "composto de cromo hexavalente"
+  ],
+  heavy_metal: [
+    "mercurio", "mercúrio", "chumbo", "cadmio", "cádmio",
+    "arsenio", "arsênio", "cromo hexavalente", "cromo vi",
+    "selenio", "selênio", "bario", "bário", "talio", "tálio",
+    "prata", "vanadio", "vanádio", "níquel", "cobalto"
+  ],
+  organic_peroxide: [
+    "peroxido organico", "peróxido orgânico", "peroxido de benzoila",
+    "peróxido de benzoíla", "peroxido de cumeno", "peróxido de cumeno",
+    "peroxido de terc-butila", "peróxido de terc-butila",
+    "peroxido de lauroila", "peróxido de lauroíla", "mekp",
+    "peroxido de metiletilcetona", "peróxido de metiletilcetona"
+  ],
+  halogenated: [
+    "cloroformio", "clorofórmio", "diclorometano", "cloreto de metileno",
+    "tetracloreto de carbono", "tricloroetileno", "percloroetileno",
+    "clorobenzeno", "clorotolueno", "bromofórmio",
+    "iodofórmio", "cloreto de etila", "cloreto de metila",
+    "freon", "clorofluorcarbono", "cfc", "halogenado"
+  ],
+  ether: [
+    "eter etilico", "éter etílico", "eter dietilico", "éter dietílico",
+    "eter isopropilico", "éter isopropílico", "eter de petroleo",
+    "éter de petróleo", "tetrahidrofurano", "thf", "dioxano",
+    "metil terc-butil eter", "mtbe", "dimetoxietano", "glyme"
+  ],
+  azide: [
+    "azida", "azida de sodio", "azida de sódio", "azida de chumbo",
+    "azida de prata", "NaN3"
+  ],
+  nitro: [
+    "nitrobenzeno", "nitrotolueno", "acido picrico", "ácido pícrico",
+    "trinitrotolueno", "tnt", "nitroglicerina", "dinitrofenol",
+    "nitrocelulose", "nitrometano", "nitrocomposto"
+  ],
+  isocyanate: [
+    "isocianato", "tdi", "mdi", "hexametileno diisocianato",
+    "hdi", "isoforona diisocianato", "ipdi", "uretano", "poliuretano"
+  ],
+  peroxide_former: [
+    "eter etilico", "éter etílico", "eter dietilico", "éter dietílico",
+    "eter isopropilico", "éter isopropílico", "tetrahidrofurano", "thf",
+    "dioxano", "eter de petroleo", "éter de petróleo",
+    "isopropanol", "alcool isopropilico", "dimetoxietano"
+  ],
+  phenol: [
+    "fenol", "cresol", "xilenol", "hidroquinona", "resorcinol",
+    "bisfenol a", "bpa", "naftol", "timol"
+  ],
+  amine: [
+    "anilina", "trietilamina", "dietilamina", "etilamina",
+    "butilamina", "propilamina", "etanolamina",
+    "dimetilamina", "trimetilamina", "ciclohexilamina",
+    "benzilamina", "toluidina", "m-fenilenodiamina"
+  ],
+  reactive_metal: [
+    "aluminio", "alumínio", "zinco", "magnesio", "magnésio",
+    "sodio metalico", "sódio metálico", "potassio metalico",
+    "potássio metálico", "litio", "lítio", "calcio metalico",
+    "cálcio metálico", "po de aluminio", "pó de alumínio",
+    "po de zinco", "pó de zinco", "po de magnesio", "pó de magnésio"
+  ],
+  water_reactive: [
+    "sodio metalico", "sódio metálico", "potassio metalico", "potássio metálico",
+    "litio", "lítio", "calcio metalico", "cálcio metálico",
+    "hidreto", "hidreto de sodio", "hidreto de litio e aluminio",
+    "lialh4", "boreto de sodio", "boro-hidreto", "naBH4",
+    "hidreto de calcio", "caH2", "metal alcalino", "metal alcalino terroso"
+  ],
+  polymerizable: [
+    "estireno", "acrilato de metila", "acrilato de butila",
+    "metacrilato de metila", "acido acrilico", "acrílico",
+    "acrilonitrila", "vinil", "cloreto de vinila", "acetato de vinila",
+    "formaldeido", "formaldeído", "epoxi", "óxido de etileno",
+    "isocianato", "diisocianato", "cianoacrilato"
+  ],
+  halogen: [
+    "cloro", "cloro gasoso", "bromo", "iodo", "fluor", "flúor"
+  ],
+  radioactive: [
+    "uranio", "urânio", "torio", "tório", "radio", "rádio",
+    "cesio", "césio", "cobalto-60", "tecnecio", "tecnécio",
+    "americio", "amerício", "iodo-131", "fosforo-32", "fósforo-32",
+    "tritio", "trítio", "carbono-14", "radioativo", "radioisotopo"
+  ],
+  organophosphate: [
+    "organofosforado", "paration", "malation", "clorpirifos",
+    "diazinon", "glifosato", "metil paration", "fosfato organico",
+    "diclorvas", "DDVP"
+  ]
 };
 
 const INCOMPATIBILITY_MATRIX = [
   { "a": "acid_inorganic", "b": "hypochlorite", "gas": "Cl2", "desc": "[CRITICAL] Ácidos + Hipocloritos → Liberação de gás cloro (Cl2) tóxico, asfixiante e corrosivo. Evite a mistura; use EPI completo e ventilação." },
-  { "a": "acid_organic", "b": "hypochlorite", "gas": "Cl2", "desc": "[CRITICAL] Ácidos + Hipocloritos → Liberação de gás cloro (Cl2) tóxico, asfixiante e corrosivo." },
-  { "a": "base", "b": "hypochlorite", "gas": "NH2Cl", "desc": "[CRITICAL] Amônia/Aminas (Bases) + Hipocloritos → Liberação de Cloraminas (NH2Cl), gases altamente tóxicos e irritantes para as vias respiratórias." },
+  { "a": "acid_organic", "b": "hypochlorite", "gas": "Cl2", "desc": "[CRITICAL] Ácidos + Hipocloritos → Liberação de gás cloro (Cl2) tóxico e corrosivo." },
+  { "a": "base", "b": "hypochlorite", "gas": "NH2Cl", "desc": "[CRITICAL] Bases (Amônia/Aminas) + Hipocloritos → Liberação de Cloraminas (NH2Cl), gases altamente tóxicos e irritantes respiratórios." },
   { "a": "acid_inorganic", "b": "cyanide", "gas": "HCN", "desc": "[FATAL] Ácidos + Cianetos → Liberação de Gás Cianídrico (HCN), extremamente tóxico e letal. Risco de morte imediata por inalação." },
   { "a": "acid_organic", "b": "cyanide", "gas": "HCN", "desc": "[FATAL] Ácidos + Cianetos → Liberação de Gás Cianídrico (HCN), letal por inalação." },
   { "a": "acid_inorganic", "b": "sulfide", "gas": "H2S", "desc": "[FATAL] Ácidos + Sulfetos → Liberação de Gás Sulfídrico (H2S), altamente tóxico, asfixiante e inflamável." },
   { "a": "acid_organic", "b": "sulfide", "gas": "H2S", "desc": "[FATAL] Ácidos + Sulfetos → Liberação de Gás Sulfídrico (H2S)." },
   { "a": "oxidizer", "b": "flammable", "gas": null, "desc": "[CRITICAL] Oxidante + Inflamável → Risco extremo de incêndio e explosão. Reação violenta e espontânea." },
   { "a": "oxidizer", "b": "acid_organic", "gas": null, "desc": "[CRITICAL] Oxidantes + Ácidos Orgânicos → Reação violenta com risco de ignição espontânea, fervura e explosão." },
-  { "a": "acid_inorganic", "b": "flammable", "gas": "NOx", "desc": "[CRITICAL] Ácidos Inorgânicos Fortes (ex: Nítrico) + Solventes Inflamáveis → Reação extremamente violenta, risco de explosão e liberação de gases nitrosos (NOx) letais." },
+  { "a": "acid_inorganic", "b": "flammable", "gas": "NOx", "desc": "[CRITICAL] Ácidos Inorgânicos Fortes (Nítrico/Sulfúrico) + Solventes Inflamáveis → Reação extremamente violenta, risco de explosão e liberação de gases nitrosos (NOx) letais." },
   { "a": "acid_inorganic", "b": "base", "gas": null, "desc": "[WARNING] Ácido + Base → Reação de neutralização fortemente exotérmica. Risco de fervura, projeção de material corrosivo e ruptura do frasco." },
   { "a": "acid_organic", "b": "base", "gas": null, "desc": "[WARNING] Ácido + Base → Reação de neutralização exotérmica. Risco de aquecimento e respingos." },
   { "a": "base", "b": "reactive_metal", "gas": "H2", "desc": "[CRITICAL] Base Forte + Metal Reativo (Alumínio/Zinco) → Liberação de gás hidrogênio (H2), altamente inflamável e explosivo." },
-  { "a": "acid_inorganic", "b": "reactive_metal", "gas": "H2", "desc": "[CRITICAL] Ácido Forte + Metal Reativo → Liberação rápida de gás hidrogênio (H2), altamente inflamável e explosivo." }
+  { "a": "acid_inorganic", "b": "reactive_metal", "gas": "H2", "desc": "[CRITICAL] Ácido Forte + Metal Reativo → Liberação rápida de gás hidrogênio (H2), altamente inflamável e explosivo." },
+  { "a": "acid_inorganic", "b": "water_reactive", "gas": null, "desc": "[CRITICAL] Ácidos + Reativos com Água → Risco de explosão violenta, projeção de material corrosivo." },
+  { "a": "water_reactive", "b": "flammable", "gas": "H2", "desc": "[CRITICAL] Reativo com Água + Água ou Umidade → Liberação de gás hidrogênio (H2) inflamável. Risco de explosão." },
+  { "a": "oxidizer", "b": "ether", "gas": null, "desc": "[CRITICAL] Oxidantes + Éteres → Risco de explosão violenta. Éteres formam peróxidos instáveis em contato com oxidantes fortes." },
+  { "a": "oxidizer", "b": "organic_peroxide", "gas": null, "desc": "[CRITICAL] Oxidante + Peróxido Orgânico → Risco extremo de decomposição explosiva e incêndio violento." },
+  { "a": "oxidizer", "b": "nitro", "gas": "NOx", "desc": "[CRITICAL] Oxidante + Nitrocomposto → Risco de explosão e liberação de gases tóxicos (NOx)." },
+  { "a": "acid_inorganic", "b": "ether", "gas": null, "desc": "[WARNING] Ácidos Fortes + Éteres → Risco de reação exotérmica. Éteres podem formar peróxidos explosivos com exposição ao ar." },
+  { "a": "acid_inorganic", "b": "halogenated", "gas": null, "desc": "[WARNING] Ácidos Fortes + Halogenados → Risco de decomposição com liberação de gases corrosivos (HCl, HBr, HF)." },
+  { "a": "base", "b": "azide", "gas": "HN3", "desc": "[CRITICAL] Ácidos + Azidas → Liberação de Ácido Hidrazoico (HN3), altamente explosivo e tóxico. Risco de detonação." },
+  { "a": "acid_inorganic", "b": "azide", "gas": "HN3", "desc": "[FATAL] Ácidos + Azidas → Liberação de Ácido Hidrazoico (HN3) gasoso, extremamente explosivo e letal." },
+  { "a": "oxidizer", "b": "hypochlorite", "gas": "Cl2", "desc": "[CRITICAL] Oxidantes Fortes + Hipocloritos → Liberação de gás cloro (Cl2) violento e reação exotérmica descontrolada." },
+  { "a": "oxidizer", "b": "phenol", "gas": null, "desc": "[CRITICAL] Oxidantes + Fenóis → Reação violenta com risco de explosão e geração de compostos altamente tóxicos." },
+  { "a": "base", "b": "nitro", "gas": null, "desc": "[CRITICAL] Bases Fortes + Nitrocompostos → Formação de sais instáveis e potencial explosivo. Risco de detonação." },
+  { "a": "acid_inorganic", "b": "nitro", "gas": null, "desc": "[WARNING] Ácidos Fortes + Nitrocompostos → Sensibilização do composto explosivo. Risco de detonação por choque ou calor." },
+  { "a": "oxidizer", "b": "water_reactive", "gas": null, "desc": "[CRITICAL] Oxidante + Reativo com Água → Reação violenta com formação de gases tóxicos e risco de explosão." },
+  { "a": "base", "b": "organophosphate", "gas": null, "desc": "[CRITICAL] Bases Fortes + Organofosforados → Hidrólise alcalina gerando subprodutos tóxicos. Reação exotérmica perigosa." },
+  { "a": "acid_inorganic", "b": "organophosphate", "gas": null, "desc": "[WARNING] Ácidos + Organofosforados → Risco de decomposição gerando gases tóxicos (fosfina, PH3)." },
+  { "a": "oxidizer", "b": "amine", "gas": "NOx", "desc": "[CRITICAL] Oxidantes + Aminas → Reação violenta com liberação de gases nitrosos tóxicos e risco de incêndio." },
+  { "a": "acid_inorganic", "b": "amine", "gas": null, "desc": "[WARNING] Ácidos + Aminas → Reação exotérmica de salificação. Risco de fervura e respingos corrosivos." },
+  { "a": "base", "b": "amine", "gas": "NH3", "desc": "[WARNING] Bases Fortes + Sais de Amina → Liberação de amônia (NH3) gasosa, irritante e tóxica." },
+  { "a": "oxidizer", "b": "halogen", "gas": null, "desc": "[CRITICAL] Oxidantes + Halogênios (Cloro/Bromo) → Reação violenta com risco de explosão e liberação de gases altamente tóxicos." },
+  { "a": "hypochlorite", "b": "amine", "gas": "NH2Cl", "desc": "[CRITICAL] Hipocloritos + Aminas → Liberação de Cloraminas (NH2Cl e derivados), gases altamente tóxicos e irritantes." },
+  { "a": "ether", "b": "oxidizer", "gas": null, "desc": "[CRITICAL] Éteres + Oxidantes → Éteres acumulam peróxidos explosivos. Risco de detonação por fricção ou choque." },
+  { "a": "ether", "b": "ether", "gas": null, "desc": "[WARNING] Éteres presentes. Formam peróxidos explosivos com o tempo. Não destilar até volume seco." },
+  { "a": "nitro", "b": "nitro", "gas": null, "desc": "[CRITICAL] Nitrocompostos presentes. Avaliar risco de explosão. Concentrações >5% podem exigir classificação de Explosivo (Classe 1.1)." }
 ];
 
 const CLASSIFICATION_RULES = [
+  {
+    conditions: ["oxidizer", "flammable"],
+    un_number: "UN3139",
+    proper_shipping_name: "LÍQUIDO OXIDANTE, N.E.",
+    risk_class: "5.1",
+    pictograms: ["GHS03", "GHS02"],
+    h_phrases: ["H272", "H225"]
+  },
+  {
+    conditions: ["heavy_metal"],
+    un_number: "UN3288",
+    proper_shipping_name: "SÓLIDO TÓXICO, INORGÂNICO, N.E.",
+    risk_class: "6.1",
+    pictograms: ["GHS06", "GHS09"],
+    h_phrases: ["H301", "H410"]
+  },
+  {
+    conditions: ["organic_peroxide"],
+    un_number: "UN3107",
+    proper_shipping_name: "PERÓXIDO ORGÂNICO TIPO D, LÍQUIDO",
+    risk_class: "5.2",
+    pictograms: ["GHS01", "GHS02"],
+    h_phrases: ["H242"]
+  },
+  {
+    conditions: ["nitro"],
+    un_number: "UN0473",
+    proper_shipping_name: "SUBSTÂNCIA EXPLOSIVA, N.E.",
+    risk_class: "1.1A",
+    pictograms: ["GHS01"],
+    h_phrases: ["H201"]
+  },
+  {
+    conditions: ["ether"],
+    un_number: "UN3271",
+    proper_shipping_name: "ÉTERES, N.E.",
+    risk_class: "3",
+    pictograms: ["GHS02"],
+    h_phrases: ["H225", "H019"]
+  },
+  {
+    conditions: ["water_reactive"],
+    un_number: "UN3134",
+    proper_shipping_name: "LÍQUIDO REATIVO COM ÁGUA, TÓXICO, N.E.",
+    risk_class: "4.3",
+    pictograms: ["GHS02", "GHS06"],
+    h_phrases: ["H260"]
+  },
+  {
+    conditions: ["isocyanate"],
+    un_number: "UN2206",
+    proper_shipping_name: "ISOCIANATOS, TÓXICOS, N.E.",
+    risk_class: "6.1",
+    pictograms: ["GHS06", "GHS08"],
+    h_phrases: ["H302", "H334"]
+  },
+  {
+    conditions: ["halogenated"],
+    un_number: "UN3082",
+    proper_shipping_name: "SUBSTÂNCIA QUE APRESENTA RISCO PARA O MEIO AMBIENTE, LÍQUIDA, N.E.",
+    risk_class: "9",
+    pictograms: ["GHS09"],
+    h_phrases: ["H411"]
+  },
   {
     conditions: ["flammable", "toxic_acute", "acid_inorganic"],
     un_number: "UN3286",
