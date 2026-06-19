@@ -1220,7 +1220,7 @@ async function searchPubChem(query) {
         });
 
         checkIncompatibility();
-        // calculateUnifiedLabel();
+        calculateUnifiedLabel();
     }
 
     function calculateUnifiedLabel() {
