@@ -1540,15 +1540,48 @@ async function searchPubChem(query) {
             // Alerta de segurança para incompatibilidades químicas
             const alertBanner = document.getElementById('pdSafetyAlert');
             const alertText = document.getElementById('pdSafetyAlertText');
+            const printBtn = document.getElementById('printBtn');
+            
             if (alertBanner && alertText && result.safety_alert) {
-                const hasIncompatibility = result.details &&
-                    result.details.incompatibilities &&
-                    result.details.incompatibilities.length > 0;
-                if (hasIncompatibility) {
+                const hasCritical = (result.safety_alert.includes('[CRITICAL]') || result.safety_alert.includes('[FATAL]')) || (result.details && result.details.incompatibilities && result.details.incompatibilities.some(i => i.severity === 'CRITICAL' || i.severity === 'FATAL'));
+                
+                if (result.safety_alert.includes('[CRITICAL]') || result.safety_alert.includes('[FATAL]') || result.safety_alert.includes('[WARNING]')) {
                     alertText.textContent = result.safety_alert;
                     alertBanner.style.display = 'block';
+                    
+                    if (hasCritical) {
+                        alertBanner.style.backgroundColor = '#fee2e2';
+                        alertBanner.style.color = '#dc2626';
+                        alertBanner.style.border = '2px solid #ef4444';
+                        if (printBtn) {
+                            printBtn.disabled = true;
+                            printBtn.style.opacity = '0.5';
+                            printBtn.style.cursor = 'not-allowed';
+                        }
+                    } else if (result.safety_alert.includes('[WARNING]')) {
+                        alertBanner.style.backgroundColor = '#fef3c7';
+                        alertBanner.style.color = '#d97706';
+                        alertBanner.style.border = '2px solid #f59e0b';
+                        if (printBtn) {
+                            printBtn.disabled = false;
+                            printBtn.style.opacity = '1';
+                            printBtn.style.cursor = 'pointer';
+                        }
+                    }
                 } else {
                     alertBanner.style.display = 'none';
+                    if (printBtn) {
+                        printBtn.disabled = false;
+                        printBtn.style.opacity = '1';
+                        printBtn.style.cursor = 'pointer';
+                    }
+                }
+            } else if (alertBanner) {
+                alertBanner.style.display = 'none';
+                if (printBtn) {
+                    printBtn.disabled = false;
+                    printBtn.style.opacity = '1';
+                    printBtn.style.cursor = 'pointer';
                 }
             }
 
@@ -2021,16 +2054,51 @@ async function searchPubChem(query) {
                 // Palavra de Advertência e Alerta de Segurança
                 const alertBanner = document.getElementById('pdSafetyAlert');
                 const alertText = document.getElementById('pdSafetyAlertText');
+                const printBtn = document.getElementById('printBtn');
                 
-                // Se não houver 'details' na resposta, vamos inferir o perigo pelo safety_alert
-                const hasCritical = !!data.safety_alert || (data.details && data.details.incompatibilities && data.details.incompatibilities.some(i => i.severity === 'CRITICAL'));
+                // Verifica severidade
+                const hasCritical = (data.safety_alert && (data.safety_alert.includes('[CRITICAL]') || data.safety_alert.includes('[FATAL]'))) || (data.details && data.details.incompatibilities && data.details.incompatibilities.some(i => i.severity === 'CRITICAL' || i.severity === 'FATAL'));
                 document.getElementById('pdAdvertencia').textContent = hasCritical ? 'PERIGO' : 'ATENÇÃO';
 
                 if (alertBanner && alertText && data.safety_alert) {
-                    alertText.textContent = data.safety_alert;
-                    alertBanner.style.display = 'block';
+                    if (data.safety_alert.includes('[CRITICAL]') || data.safety_alert.includes('[FATAL]') || data.safety_alert.includes('[WARNING]')) {
+                        alertText.textContent = data.safety_alert;
+                        alertBanner.style.display = 'block';
+                        
+                        if (hasCritical) {
+                            alertBanner.style.backgroundColor = '#fee2e2';
+                            alertBanner.style.color = '#dc2626';
+                            alertBanner.style.border = '2px solid #ef4444';
+                            if (printBtn) {
+                                printBtn.disabled = true;
+                                printBtn.style.opacity = '0.5';
+                                printBtn.style.cursor = 'not-allowed';
+                            }
+                        } else if (data.safety_alert.includes('[WARNING]')) {
+                            alertBanner.style.backgroundColor = '#fef3c7';
+                            alertBanner.style.color = '#d97706';
+                            alertBanner.style.border = '2px solid #f59e0b';
+                            if (printBtn) {
+                                printBtn.disabled = false;
+                                printBtn.style.opacity = '1';
+                                printBtn.style.cursor = 'pointer';
+                            }
+                        }
+                    } else {
+                        alertBanner.style.display = 'none';
+                        if (printBtn) {
+                            printBtn.disabled = false;
+                            printBtn.style.opacity = '1';
+                            printBtn.style.cursor = 'pointer';
+                        }
+                    }
                 } else if (alertBanner) {
                     alertBanner.style.display = 'none';
+                    if (printBtn) {
+                        printBtn.disabled = false;
+                        printBtn.style.opacity = '1';
+                        printBtn.style.cursor = 'pointer';
+                    }
                 }
 
                 // Frases H e P com textos resolvidos (máximo 6 cada) lendo diretamente dos arrays data.h_phrases e data.p_phrases

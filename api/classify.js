@@ -48,6 +48,7 @@ export default function handler(req, res) {
       }
     };
 
+    console.log("RESPOSTA DO MOTOR:", JSON.stringify(detailedResult, null, 2));
     return res.status(200).json(detailedResult);
 
   } catch (error) {
@@ -551,6 +552,11 @@ function classifyMixture(analysis) {
 
   const defaultPPhrases = ['P210', 'P233', 'P260', 'P264', 'P280', 'P303+P361+P353', 'P305+P351+P338', 'P403+P235', 'P501'];
 
+  let safety_alert = '';
+  if (incompatibilities.length > 0) {
+    safety_alert = incompatibilities.map(i => i.description).join('\n\n');
+  }
+
   if (!matchedRule) {
     if (present.length > 0) {
       return {
@@ -561,7 +567,7 @@ function classifyMixture(analysis) {
         pictograms: ['GHS07'],
         h_phrases: ['H315', 'H319'],
         p_phrases: defaultPPhrases,
-        safety_alert: 'Mistura complexa não listada. Consulte um especialista.',
+        safety_alert: safety_alert || 'Mistura complexa não listada. Consulte um especialista.',
         incompatibilities
       };
     } else {
@@ -573,17 +579,10 @@ function classifyMixture(analysis) {
         pictograms: [],
         h_phrases: [],
         p_phrases: [],
-        safety_alert: 'Mistura não apresenta riscos primários nas categorias avaliadas.',
+        safety_alert: safety_alert || 'Mistura não apresenta riscos primários nas categorias avaliadas.',
         incompatibilities
       };
     }
-  }
-
-  let safety_alert = '';
-  if (incompatibilities.length > 0) {
-    safety_alert = incompatibilities.map(i => i.description).join('\n\n');
-  } else {
-    safety_alert = 'Mistura classificada com sucesso. Siga as instruções de armazenamento e descarte adequadas.';
   }
 
   return {
@@ -594,7 +593,7 @@ function classifyMixture(analysis) {
     pictograms: matchedRule.pictograms,
     h_phrases: matchedRule.h_phrases,
     p_phrases: defaultPPhrases,
-    safety_alert: safety_alert,
+    safety_alert: safety_alert || 'Mistura classificada com sucesso. Siga as instruções de armazenamento e descarte adequadas.',
     incompatibilities
   };
 }
