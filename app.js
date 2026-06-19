@@ -1017,7 +1017,7 @@ async function searchPubChem(query) {
                     selectProduct(p);
                 }
 
-                // Restaurar edições personalizadas (Nome, ONU, Estado, Incompatibilidade e Pictogramas)
+                // Restaurar edições personalizadas (Nome, UN, Estado, Incompatibilidade e Pictogramas)
                 if(p.isMyProduct) {
                     currentMyProductId = p.meuProdutoData.id_supabase;
                     const delBtn = document.getElementById('deletePersonalDbBtn');
@@ -1026,7 +1026,7 @@ async function searchPubChem(query) {
                     setTimeout(() => {
                         const data = p.meuProdutoData;
                         if(data.nome) document.getElementById('pdNome').textContent = data.nome;
-                        if(data.onu_number) document.getElementById('pdOnu').textContent = (data.onu_number.toUpperCase().startsWith('ONU') ? '' : 'ONU: ') + data.onu_number;
+                        if(data.onu_number) document.getElementById('pdOnu').textContent = (data.onu_number.toUpperCase().startsWith('UN') ? '' : 'UN: ') + data.onu_number;
                         if(data.estado_fisico && document.getElementById('pdEstado')) document.getElementById('pdEstado').value = data.estado_fisico;
                         if(data.incompatibilidade && document.getElementById('pdIncompatibilidade')) document.getElementById('pdIncompatibilidade').value = data.incompatibilidade;
                         
@@ -1224,7 +1224,7 @@ async function searchPubChem(query) {
     }
 
     function calculateUnifiedLabel() {
-        let isPureForONU = currentMixture.length === 1 || currentMixture.some(m => parseFloat(m.percentage) >= 90);
+        let isPureForUN = currentMixture.length === 1 || currentMixture.some(m => parseFloat(m.percentage) >= 90);
         let pureComponent = currentMixture.find(m => parseFloat(m.percentage) >= 90) || currentMixture[0];
         
         const formatName = name => (name || "").toUpperCase();
@@ -1279,49 +1279,49 @@ async function searchPubChem(query) {
                     return name.includes("oxigênio") || name.includes("oxigenio") || name === "o2";
                 });
                 if (oxygenComponent && parseFloat(oxygenComponent.percentage) > 23.5) {
-                    unifiedOnu = `ONU 1072 OXIGÊNIO COMPRIMIDO (${names})`;
+                    unifiedOnu = `UN 1072 OXIGÊNIO COMPRIMIDO (${names})`;
                     unifiedClass = "2.2, 5.1";
                 } else {
-                    unifiedOnu = `ONU 1956 GÁS COMPRIMIDO, N.E. (${names})`;
+                    unifiedOnu = `UN 1956 GÁS COMPRIMIDO, N.E. (${names})`;
                     unifiedClass = "2";
                 }
             } else if (classesObj[1] || classesObj[5.2] || classesObj[7]) {
-                unifiedOnu = `ONU CLASSE ESPECIAL (VERIFICAR FICHA DE EMERGÊNCIA) (${names})`;
+                unifiedOnu = `UN CLASSE ESPECIAL (VERIFICAR FICHA DE EMERGÊNCIA) (${names})`;
                 unifiedClass = "1, 5.2 ou 7";
             } else if (classesObj[3] && classesObj[6] && classesObj[8]) {
-                unifiedOnu = `ONU 3286 LÍQUIDO INFLAMÁVEL, TÓXICO, CORROSIVO, N.E. (${names})`;
+                unifiedOnu = `UN 3286 LÍQUIDO INFLAMÁVEL, TÓXICO, CORROSIVO, N.E. (${names})`;
                 unifiedClass = "3, 6.1, 8";
             } else if (classesObj[3] && classesObj[6]) {
-                unifiedOnu = `ONU 1992 LÍQUIDO INFLAMÁVEL, TÓXICO, N.E. (${names})`;
+                unifiedOnu = `UN 1992 LÍQUIDO INFLAMÁVEL, TÓXICO, N.E. (${names})`;
                 unifiedClass = "3, 6.1";
             } else if (classesObj[3] && classesObj[8]) {
-                unifiedOnu = `ONU 2924 LÍQUIDO INFLAMÁVEL, CORROSIVO, N.E. (${names})`;
+                unifiedOnu = `UN 2924 LÍQUIDO INFLAMÁVEL, CORROSIVO, N.E. (${names})`;
                 unifiedClass = "3, 8";
             } else if (classesObj[8] && classesObj[6]) {
                 if (hasInhalationToxicity) {
-                    unifiedOnu = `ONU 2927 LÍQUIDO TÓXICO, CORROSIVO, ORGÂNICO, N.E. (${names})`;
+                    unifiedOnu = `UN 2927 LÍQUIDO TÓXICO, CORROSIVO, ORGÂNICO, N.E. (${names})`;
                     unifiedClass = "6.1, 8";
                 } else {
-                    unifiedOnu = `ONU 2922 LÍQUIDO CORROSIVO, TÓXICO, N.E. (${names})`;
+                    unifiedOnu = `UN 2922 LÍQUIDO CORROSIVO, TÓXICO, N.E. (${names})`;
                     unifiedClass = "8, 6.1";
                 }
             } else if (classesObj[3]) {
-                unifiedOnu = `ONU 1993 LÍQUIDO INFLAMÁVEL, N.E. (${names})`;
+                unifiedOnu = `UN 1993 LÍQUIDO INFLAMÁVEL, N.E. (${names})`;
                 unifiedClass = "3";
             } else if (classesObj[8]) {
-                unifiedOnu = `ONU 3264 LÍQUIDO CORROSIVO, ÁCIDO, INORGÂNICO, N.E. (${names})`;
+                unifiedOnu = `UN 3264 LÍQUIDO CORROSIVO, ÁCIDO, INORGÂNICO, N.E. (${names})`;
                 unifiedClass = "8";
             } else if (classesObj[6]) {
-                unifiedOnu = `ONU 2810 LÍQUIDO TÓXICO, ORGÂNICO, N.E. (${names})`;
+                unifiedOnu = `UN 2810 LÍQUIDO TÓXICO, ORGÂNICO, N.E. (${names})`;
                 unifiedClass = "6.1";
             } else if (classesObj[2]) {
-                unifiedOnu = `ONU 1956 GÁS COMPRIMIDO, N.E. (${names})`;
+                unifiedOnu = `UN 1956 GÁS COMPRIMIDO, N.E. (${names})`;
                 unifiedClass = "2";
             } else if (classesObj[9]) {
-                unifiedOnu = `ONU 3082 SUBSTÂNCIA QUE APRESENTA RISCO PARA O MEIO AMBIENTE, LÍQUIDA, N.E. (${names})`;
+                unifiedOnu = `UN 3082 SUBSTÂNCIA QUE APRESENTA RISCO PARA O MEIO AMBIENTE, LÍQUIDA, N.E. (${names})`;
                 unifiedClass = "9";
             } else {
-                unifiedOnu = `ONU MISTURA N.E. (${names})`;
+                unifiedOnu = `UN MISTURA N.E. (${names})`;
                 unifiedClass = "Mistura Multirrisco";
             }
         }
@@ -1491,9 +1491,9 @@ async function searchPubChem(query) {
             const result = await response.json();
             console.log('[classify API] Resultado:', result);
 
-            // ONU e Classe de Risco (da API têm precedência sobre lógica local)
+            // UN e Classe de Risco (da API têm precedência sobre lógica local)
             if (result.un_number && result.un_number !== 'UN0000') {
-                const onuText = `ONU ${result.un_number} ${result.proper_shipping_name || ''}`.trim();
+                const onuText = `UN ${result.un_number} ${result.proper_shipping_name || ''}`.trim();
                 document.getElementById('pdOnu').textContent = onuText;
             }
             if (result.risk_class) {
@@ -1637,7 +1637,7 @@ async function searchPubChem(query) {
         const pLis = pLisNodes.slice(0, maxP).map(li => li.outerHTML).join('');
 
         let onuOnly = unifiedOnu;
-        if (unifiedOnu.toUpperCase().startsWith("ONU") && unifiedOnu.split(" ").length > 1) {
+        if (unifiedOnu.toUpperCase().startsWith("UN") && unifiedOnu.split(" ").length > 1) {
             onuOnly = unifiedOnu.split(" ")[1];
         }
 
@@ -1651,7 +1651,7 @@ async function searchPubChem(query) {
                 <div style="flex: 1;"></div>
                 <div style="flex: 2; text-align: center;">${unifiedAdv}</div>
                 <div style="flex: 1; text-align: right; font-size: 0.6em; line-height: 1.1; padding-right: 2mm;">
-                    <div style="font-weight: normal;">ONU: <span style="font-weight: bold;">${onuOnly}</span></div>
+                    <div style="font-weight: normal;">UN: <span style="font-weight: bold;">${onuOnly}</span></div>
                     <div style="font-weight: normal;">Classe: <span style="font-weight: bold;">${unifiedClass}</span></div>
                 </div>
             </div>
@@ -1880,7 +1880,7 @@ async function searchPubChem(query) {
             savePersonalDbBtn.textContent = "Salvando...";
             
             const nome = document.getElementById('pdNome').textContent.trim();
-            const onu_number = document.getElementById('pdOnu').textContent.replace('ONU: ', '').trim();
+            const onu_number = document.getElementById('pdOnu').textContent.replace('UN: ', '').trim();
             const estado_fisico = document.getElementById('pdEstado') ? document.getElementById('pdEstado').value : '';
             const incompatibilidade = document.getElementById('pdIncompatibilidade') ? document.getElementById('pdIncompatibilidade').value : '';
             
@@ -2003,9 +2003,9 @@ async function searchPubChem(query) {
 
                 // 2. Preencher a Etiqueta com os resultados da API
                 if (data.un_number && data.un_number !== 'UN0000') {
-                    // Limpa um possível 'UN' ou 'ONU' já presente na string e garante o formato "ONU XXXX - Nome"
-                    const rawUn = data.un_number.replace(/^UN|ONU/i, '').trim();
-                    const onuText = `ONU ${rawUn} - ${data.proper_shipping_name || ''}`.trim();
+                    // Limpa um possível 'UN' ou 'UN' já presente na string e garante o formato "UN XXXX - Nome"
+                    const rawUn = data.un_number.replace(/^UN|UN/i, '').trim();
+                    const onuText = `UN ${rawUn} - ${data.proper_shipping_name || ''}`.trim();
                     document.getElementById('pdOnu').textContent = onuText;
                 } else {
                     document.getElementById('pdOnu').textContent = "A definir";
