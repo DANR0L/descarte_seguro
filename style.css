@@ -115,10 +115,11 @@ body { background-color: var(--bg-dark); color: var(--text-primary); line-height
     .size-A .print-pictograms {  padding: 0.5mm; }
     .size-A .print-pictograms img { max-width: 9mm; max-height: 9mm; }
     .size-A .print-grid-2col > div { padding: 0.5mm 1mm; }
-    .size-A .print-box-title { font-size: 3.5pt; margin-bottom: 0; }
-    .size-A .print-phrases { font-size: 2.8pt; line-height: 1; -webkit-line-clamp: 4; }
-    .size-A .print-phrases li { margin-bottom: 0; }
-    .size-A .print-info-text { font-size: 3.2pt; }
+    .size-A .print-box-title { font-size: 4.5pt; margin-bottom: 0.5mm; }
+    .size-A .print-phrases { font-size: 4pt; line-height: 1.1; -webkit-line-clamp: 5; }
+    .size-A .print-phrases ul { margin-left: 1mm; padding-left: 1mm; }
+    .size-A .print-phrases li { margin-bottom: 0.2mm; }
+    .size-A .print-info-text { font-size: 4.5pt; }
 
     .size-B.form-container { width: 105mm; height: 74mm; border-width: 0.7mm; border-radius: 2mm; }
     .size-B .print-title { font-size: 9pt; }
@@ -127,10 +128,11 @@ body { background-color: var(--bg-dark); color: var(--text-primary); line-height
     .size-B .print-pictograms {  padding: 1mm; }
     .size-B .print-pictograms img { max-width: 14mm; max-height: 14mm; }
     .size-B .print-grid-2col > div { padding: 1mm 1.5mm; }
-    .size-B .print-box-title { font-size: 4.8pt; margin-bottom: 0.2mm; }
-    .size-B .print-phrases { font-size: 3.8pt; line-height: 1.05; -webkit-line-clamp: 5; }
-    .size-B .print-phrases li { margin-bottom: 0.2mm; }
-    .size-B .print-info-text { font-size: 4.2pt; }
+    .size-B .print-box-title { font-size: 5.5pt; margin-bottom: 0.5mm; }
+    .size-B .print-phrases { font-size: 5pt; line-height: 1.1; -webkit-line-clamp: 6; }
+    .size-B .print-phrases ul { margin-left: 1.5mm; padding-left: 1mm; }
+    .size-B .print-phrases li { margin-bottom: 0.3mm; }
+    .size-B .print-info-text { font-size: 5.5pt; }
 
     .size-D.form-container { width: 210mm; height: 148mm; border-width: 1.5mm; border-radius: 4mm; }
     .size-D .print-title { font-size: 17pt; }
