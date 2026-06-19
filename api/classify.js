@@ -352,7 +352,7 @@ function classifyMixture(analysis) {
 
   let safety_alert = '';
   if (incompatibilities.length > 0) {
-    safety_alert = incompatibilities.map(i => i.description).join(' ');
+    safety_alert = incompatibilities.map(i => i.description).join('\n\n');
   } else {
     safety_alert = 'Mistura classificada com sucesso. Siga as instruções de armazenamento e descarte adequadas.';
   }

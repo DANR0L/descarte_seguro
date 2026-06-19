@@ -167,3 +167,5 @@ body { background-color: var(--bg-dark); color: var(--text-primary); line-height
 
  @ k e y f r a m e s   b l i n k - a l e r t   {   0 % ,   1 0 0 %   {   o p a c i t y :   1 ;   }   5 0 %   {   o p a c i t y :   0 . 5 ;   }   }  
  
+#pdSafetyAlertText { white-space: pre-wrap; text-align: left; display: inline-block; }
+
