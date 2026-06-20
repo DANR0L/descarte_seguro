@@ -676,74 +676,7 @@ async function searchPubChem(query) {
                     if (foundCas) casNumber = foundCas;
                 }
             } catch (e) {
-                if (ghsData.Record && ghsData.Record.Section) {
-                    function findGhsSection(sections) {
-                        for (const section of sections) {
-                            if (section.TOCHeading && section.TOCHeading.includes('GHS Classification')) {
-                                return section;
-                            }
-                            if (section.Section) {
-                                const found = findGhsSection(section.Section);
-                                if (found) return found;
-                            }
-                        }
-                        return null;
-                    }
-
-                    const ghsSection = findGhsSection(ghsData.Record.Section);
-                    if (ghsSection && ghsSection.Information) {
-                        for (const item of ghsSection.Information) {
-                            if (item.Name && item.Name.toLowerCase().includes('pictogram')) {
-                                if(item.Value.StringWithMarkup) {
-                                    const dictGhs = {
-                                        "ghs01": "ghs01_explosivo", "exploding bomb": "ghs01_explosivo",
-                                        "ghs02": "ghs02_inflamavel", "flame": "ghs02_inflamavel",
-                                        "ghs03": "ghs03_oxidante", "flame over circle": "ghs03_oxidante",
-                                        "ghs04": "ghs04_gas", "gas cylinder": "ghs04_gas",
-                                        "ghs05": "ghs05_corrosivo", "corrosion": "ghs05_corrosivo",
-                                        "ghs06": "ghs06_toxico", "skull and crossbones": "ghs06_toxico",
-                                        "ghs07": "ghs07_irritante", "exclamation mark": "ghs07_irritante",
-                                        "ghs08": "ghs08_saude", "health hazard": "ghs08_saude",
-                                        "ghs09": "ghs09_meioambiente", "environment": "ghs09_meioambiente"
-                                    };
-                                    item.Value.StringWithMarkup.forEach(p => {
-                                        if (p.Markup) {
-                                            p.Markup.forEach(m => {
-                                                if (m.URL) {
-                                                    const matchUrl = m.URL.toLowerCase().match(/ghs\d{2}/);
-                                                    if (matchUrl && dictGhs[matchUrl[0]]) {
-                                                        pictograms.add(dictGhs[matchUrl[0]]);
-                                                    }
-                                                }
-                                                if (m.Extra) {
-                                                    const extraStr = m.Extra.toLowerCase();
-                                                    for (let key in dictGhs) {
-                                                        if (extraStr.includes(key)) pictograms.add(dictGhs[key]);
-                                                    }
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                            }
-                            if (item.Name && item.Name.includes('Signal')) {
-                                if(item.Value.StringWithMarkup && item.Value.StringWithMarkup[0].String.toUpperCase() === 'DANGER') {
-                                    warningWord = "PERIGO";
-                                }
-                            }
-                            if (item.Name && item.Name.includes('GHS Hazard Statements')) {
-                                if (item.Value.StringWithMarkup) {
-                                    item.Value.StringWithMarkup.forEach(h => hazardsH.push(h.String));
-                                }
-                            }
-                            if (item.Name && item.Name.includes('Precautionary Statement Codes')) {
-                                 if (item.Value.StringWithMarkup) {
-                                    item.Value.StringWithMarkup.forEach(p => hazardsP.push(p.String));
-                                }
-                            }
-                        }
-                    }
-                }
+                console.error("Erro ao buscar CAS:", e);
             }
 
             const ghsRes = await fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/${cid}/JSON?heading=GHS+Classification`);
