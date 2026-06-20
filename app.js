@@ -281,10 +281,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         errMsg.classList.remove('hidden');
         errMsg.style.color = "var(--text-primary)";
-        errMsg.textContent = "Enviando link, aguarde...";
+        errMsg.textContent = "Enviando, aguarde...";
 
         const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin
+            redirectTo: window.location.href.split('?')[0].split('#')[0]
         });
 
         if (error) {
@@ -292,7 +292,14 @@ document.addEventListener('DOMContentLoaded', () => {
             errMsg.textContent = "Erro: " + error.message;
         } else {
             errMsg.style.color = "var(--accent)";
-            errMsg.textContent = "Link de recuperação enviado! Verifique seu e-mail e clique no link.";
+            errMsg.textContent = "E-mail enviado! Verifique o link ou o código de 6 dígitos.";
+            
+            setTimeout(() => {
+                otpRequestForm.classList.add('hidden');
+                otpVerifyForm.classList.remove('hidden');
+                const otpGroup = document.getElementById('otpCodeGroup');
+                if (otpGroup) otpGroup.classList.remove('hidden');
+            }, 2000);
         }
     });
 
@@ -303,15 +310,21 @@ document.addEventListener('DOMContentLoaded', () => {
             authForm.classList.add('hidden');
             otpRequestForm.classList.add('hidden');
             otpVerifyForm.classList.remove('hidden');
+            
+            // Oculta o campo de código OTP pois o usuário clicou no link e já foi autenticado
+            const otpGroup = document.getElementById('otpCodeGroup');
+            if (otpGroup) otpGroup.classList.add('hidden');
         }
     });
 
     // Salvar Nova Senha
     document.getElementById('verifyOtpBtn').addEventListener('click', async (e) => {
         e.preventDefault();
+        const otpToken = document.getElementById('otpToken') ? document.getElementById('otpToken').value : '';
         const newPassword = document.getElementById('newPassword').value;
         const confirmNewPassword = document.getElementById('confirmNewPassword').value;
         const errMsg = document.getElementById('otpVerErrorMsg');
+        const email = document.getElementById('otpEmail').value;
 
         if(!newPassword || !confirmNewPassword) return;
 
@@ -330,7 +343,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         errMsg.style.color = "var(--text-primary)";
-        errMsg.textContent = "Atualizando senha...";
+        errMsg.textContent = "Verificando e atualizando senha...";
+
+        // Se o usuário digitou o código de 6 dígitos (não clicou no link), verificamos o OTP primeiro
+        if (otpToken && otpToken.trim().length > 0) {
+            const { data, error: otpError } = await supabaseClient.auth.verifyOtp({
+                email,
+                token: otpToken.trim(),
+                type: 'recovery'
+            });
+            if (otpError) {
+                errMsg.style.color = "var(--danger)";
+                errMsg.textContent = "Código inválido ou expirado: " + otpError.message;
+                return;
+            }
+        }
+
         const { error: updateError } = await supabaseClient.auth.updateUser({ password: newPassword });
 
         if (updateError) {
@@ -2215,9 +2243,8 @@ async function searchPubChem(query) {
         currentRecipeId = id;
         currentMyProductId = null;
 
-        // Atualizar nome da etiqueta
+        // Atualizar estado da interface
         setTimeout(() => {
-            if (recipe.name) document.getElementById('pdNome').textContent = recipe.name;
             // Botão de excluir do banco pessoal fica oculto — não é um item do banco
             const delBtn = document.getElementById('deletePersonalDbBtn');
             if (delBtn) delBtn.classList.add('hidden');
