@@ -647,7 +647,7 @@ function processPhrases(rawPhrasesArray, isP = false) {
 
     finalArray.sort((a, b) => getImportance(a) - getImportance(b));
 
-    if (type !== 'H' && finalArray.length > 6) {
+    if (isP && finalArray.length > 6) {
         finalArray = finalArray.slice(0, 6);
     }
     
