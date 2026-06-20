@@ -562,6 +562,50 @@ const dictPhrases = {
     "P501": "P501: Descarte o conteúdo/recipiente conforme a legislação local de destinação de resíduos químicos.", "P502": "P502: Consulte o fabricante para obter informações sobre a recuperação/reciclagem."
 };
 
+/**
+ * Ordena frases H por grau de perigo (do mais perigoso ao menos) e retorna as N primeiras.
+ * Prioridade: saúde aguda fatal > tóxico/mutagênico/carcinogênico > físicos graves > nocivo > ambiental
+ */
+function sortAndLimitHPhrases(hArray, maxCount = 6) {
+    function getHPriority(code) {
+        const n = parseInt((code.match(/\d{3}/) || ['999'])[0]);
+        // Saúde - Fatal (prioridade máxima)
+        if ([300, 310, 330].includes(n)) return 10 + n;
+        // Saúde - Tóxico / Mutag / Carcinog / Reprod / Órgão
+        if ([301, 311, 331, 340, 350, 360, 304, 370, 371, 372].includes(n)) return 20 + n;
+        // Físicos graves: explosivos, oxidantes, reativos com água
+        if (n >= 200 && n <= 272) return 30 + n;
+        // Saúde - Nocivo / Irritante / Sensibilizante
+        if ([302, 312, 332, 317, 334, 335, 336, 341, 351, 361, 362, 373].includes(n)) return 40 + n;
+        // Físicos menos graves: inflamáveis, gás pressão
+        if (n >= 220 && n < 300) return 50 + n;
+        // Corrosivo / Lesões oculares
+        if ([314, 318, 290].includes(n)) return 25 + n;
+        // Irritante pele/olhos
+        if ([315, 316, 319, 320].includes(n)) return 45 + n;
+        // Ambiental
+        if (n >= 400) return 200 + n;
+        return 999;
+    }
+
+    // De-duplicar por código
+    const seen = new Set();
+    const unique = hArray.filter(h => {
+        const code = typeof h === 'object' ? h.code : (h.match(/H\d{3}/)||[''])[0];
+        if (seen.has(code)) return false;
+        seen.add(code);
+        return true;
+    });
+
+    unique.sort((a, b) => {
+        const codeA = typeof a === 'object' ? a.code : (a.match(/H\d{3}/)||[''])[0];
+        const codeB = typeof b === 'object' ? b.code : (b.match(/H\d{3}/)||[''])[0];
+        return getHPriority(codeA) - getHPriority(codeB);
+    });
+
+    return unique.slice(0, maxCount);
+}
+
 function processPhrases(rawPhrasesArray, isP = false) {
     const extractedCodes = new Map();
     const fallbackTexts = [];
@@ -1520,7 +1564,8 @@ async function searchPubChem(query) {
                 });
 
                 if (combinedH.length > 0) {
-                    document.getElementById('pdFrasesH').innerHTML = combinedH
+                    const top6H = sortAndLimitHPhrases(combinedH, 6);
+                    document.getElementById('pdFrasesH').innerHTML = top6H
                         .map(h => `<li><strong>${h.code}</strong> – ${h.text}</li>`).join('');
                 }
                 if (result.details.p_phrases_texts && result.details.p_phrases_texts.length > 0) {
@@ -2114,7 +2159,8 @@ async function searchPubChem(query) {
                 });
 
                 if (combinedH.length > 0) {
-                    document.getElementById('pdFrasesH').innerHTML = combinedH.map(h => {
+                    const top6H = sortAndLimitHPhrases(combinedH, 6);
+                    document.getElementById('pdFrasesH').innerHTML = top6H.map(h => {
                         if (typeof h === 'object' && h.code) return '<li><strong>' + h.code + '</strong> - ' + (h.text || '') + '</li>';
                         return '<li>' + h + '</li>';
                     }).join('');
