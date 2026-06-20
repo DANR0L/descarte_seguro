@@ -1496,8 +1496,31 @@ async function searchPubChem(query) {
 
             // Frases H e P com textos resolvidos da API
             if (result.details) {
-                if (result.details.h_phrases_texts && result.details.h_phrases_texts.length > 0) {
-                    document.getElementById('pdFrasesH').innerHTML = result.details.h_phrases_texts
+                // Coleta todas as frases H dos produtos individuais (vindas do PubChem)
+                const localHCodes = new Set();
+                currentMixture.forEach(m => {
+                    (m.produto.H_Phrases || []).forEach(h => {
+                        const match = h.match(/H\d{3}/);
+                        if (match) localHCodes.add(match[0]);
+                    });
+                });
+
+                // Começa com as frases da API
+                const apiHCodes = new Set((result.details.h_phrases_texts || []).map(h => h.code));
+                let combinedH = [...(result.details.h_phrases_texts || [])];
+
+                // Adiciona frases dos produtos individuais que não estão na resposta da API
+                localHCodes.forEach(code => {
+                    if (!apiHCodes.has(code)) {
+                        const rawText = dictPhrases[code] || '';
+                        // Remove o prefixo "H302: " que o dicionário inclui
+                        const text = rawText.replace(/^[HP]\d{3}[+\d]*:\s*/i, '');
+                        combinedH.push({ code, text });
+                    }
+                });
+
+                if (combinedH.length > 0) {
+                    document.getElementById('pdFrasesH').innerHTML = combinedH
                         .map(h => `<li><strong>${h.code}</strong> – ${h.text}</li>`).join('');
                 }
                 if (result.details.p_phrases_texts && result.details.p_phrases_texts.length > 0) {
@@ -1636,7 +1659,7 @@ async function searchPubChem(query) {
         const hLisNodes = Array.from(document.getElementById('pdFrasesH').children);
         const pLisNodes = Array.from(document.getElementById('pdFrasesP').children);
         
-        const hLis = hLisNodes.slice(0, maxP).map(li => li.outerHTML).join('');
+        const hLis = hLisNodes.map(li => li.outerHTML).join('');
         const pLis = pLisNodes.slice(0, maxP).map(li => li.outerHTML).join('');
 
         let onuOnly = unifiedOnu;
