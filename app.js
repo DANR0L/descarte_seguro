@@ -2093,10 +2093,28 @@ async function searchPubChem(query) {
                     }
                 }
 
-                // Frases H e P com textos resolvidos (máximo 6 cada) lendo diretamente dos arrays data.h_phrases e data.p_phrases
-                const finalHPhrases = (data.details && data.details.h_phrases_texts) ? data.details.h_phrases_texts : data.h_phrases;
-                if (finalHPhrases && Array.isArray(finalHPhrases) && finalHPhrases.length > 0) {
-                    document.getElementById('pdFrasesH').innerHTML = finalHPhrases.map(h => {
+                // Frases H: começa com as da API e adiciona as dos produtos (PubChem) que não estejam duplicadas
+                const apiHPhrases = (data.details && data.details.h_phrases_texts) ? data.details.h_phrases_texts : 
+                    (data.h_phrases || []).map(h => ({ code: h, text: dictPhrases[h] ? dictPhrases[h].replace(/^[HP]\d{3}[+\d]*:\s*/i, '') : '' }));
+                
+                const apiHCodes = new Set(apiHPhrases.map(h => typeof h === 'object' ? h.code : h.match(/H\d{3}/)?.[0]));
+                const combinedH = [...apiHPhrases];
+
+                // Adiciona frases H dos produtos individuais (do PubChem) que não estão na API
+                currentMixture.forEach(m => {
+                    (m.produto.H_Phrases || []).forEach(rawH => {
+                        const match = rawH.match(/H\d{3}/);
+                        if (match && !apiHCodes.has(match[0])) {
+                            apiHCodes.add(match[0]);
+                            const rawText = dictPhrases[match[0]] || '';
+                            const text = rawText.replace(/^[HP]\d{3}[+\d]*:\s*/i, '') || rawH;
+                            combinedH.push({ code: match[0], text });
+                        }
+                    });
+                });
+
+                if (combinedH.length > 0) {
+                    document.getElementById('pdFrasesH').innerHTML = combinedH.map(h => {
                         if (typeof h === 'object' && h.code) return '<li><strong>' + h.code + '</strong> - ' + (h.text || '') + '</li>';
                         return '<li>' + h + '</li>';
                     }).join('');
