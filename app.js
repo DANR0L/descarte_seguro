@@ -647,7 +647,7 @@ function processPhrases(rawPhrasesArray, isP = false) {
 
     finalArray.sort((a, b) => getImportance(a) - getImportance(b));
 
-    if (finalArray.length > 6) {
+    if (type !== 'H' && finalArray.length > 6) {
         finalArray = finalArray.slice(0, 6);
     }
     
@@ -1565,7 +1565,7 @@ async function searchPubChem(query) {
             if (result.details) {
                 if (result.details.h_phrases_texts && result.details.h_phrases_texts.length > 0) {
                     document.getElementById('pdFrasesH').innerHTML = result.details.h_phrases_texts
-                        .slice(0, 6).map(h => `<li><strong>${h.code}</strong> – ${h.text}</li>`).join('');
+                        .map(h => `<li><strong>${h.code}</strong> – ${h.text}</li>`).join('');
                 }
                 if (result.details.p_phrases_texts && result.details.p_phrases_texts.length > 0) {
                     document.getElementById('pdFrasesP').innerHTML = result.details.p_phrases_texts
