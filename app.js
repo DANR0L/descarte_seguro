@@ -2140,7 +2140,7 @@ async function searchPubChem(query) {
                 // Frases H e P com textos resolvidos (máximo 6 cada) lendo diretamente dos arrays data.h_phrases e data.p_phrases
                 const finalHPhrases = (data.details && data.details.h_phrases_texts) ? data.details.h_phrases_texts : data.h_phrases;
                 if (finalHPhrases && Array.isArray(finalHPhrases) && finalHPhrases.length > 0) {
-                    document.getElementById('pdFrasesH').innerHTML = finalHPhrases.slice(0, 6).map(h => {
+                    document.getElementById('pdFrasesH').innerHTML = finalHPhrases.map(h => {
                         if (typeof h === 'object' && h.code) return '<li><strong>' + h.code + '</strong> - ' + (h.text || '') + '</li>';
                         return '<li>' + h + '</li>';
                     }).join('');

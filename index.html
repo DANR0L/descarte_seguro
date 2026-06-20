@@ -58,6 +58,10 @@
             <!-- Validar OTP e Nova Senha -->
             <form id="otpVerifyForm" class="hidden">
                 <h3 style="margin-bottom: 1rem; font-size: 1.2rem; text-align: center;">Definir Nova Senha</h3>
+                <div class="input-group" id="otpCodeGroup">
+                    <label for="otpToken">Código de 6 dígitos recebido no e-mail</label>
+                    <input type="text" id="otpToken" placeholder="123456" maxlength="6">
+                </div>
                 <div class="input-group" style="margin-top: 1rem;">
                     <label for="newPassword">Escolha a Nova Senha (mínimo 6 caracteres)</label>
                     <input type="password" id="newPassword" required placeholder="••••••••" minlength="6">
