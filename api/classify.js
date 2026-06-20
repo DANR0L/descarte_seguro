@@ -493,7 +493,10 @@ function normalize(str) {
 
 function matchesKeywords(name, keywords) {
   const normalized = normalize(name);
-  return keywords.some((kw) => normalized.includes(normalize(kw)));
+  return keywords.some((kw) => {
+    const kwNorm = normalize(kw);
+    return new RegExp(`\\b${kwNorm}\\b`).test(normalized);
+  });
 }
 
 function detectClasses(components) {

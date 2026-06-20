@@ -419,16 +419,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkIncompatibility() {
         let isBlocked = false;
         let errorMessage = "";
+        
+        function normalizeStr(str) {
+            return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ');
+        }
+
         const allNames = currentMixture.map(r => {
             const cn = r.produto.Common_Name || r.produto.Common_Name_PT || "";
             const iupac = r.produto.IUPAC_Name || "";
             const rc = r.produto.Risk_Class || "";
-            return cn.toLowerCase() + " " + iupac.toLowerCase() + " " + rc.toLowerCase();
+            return normalizeStr(cn + " " + iupac + " " + rc);
         });
         
         for (const rule of incompatibilityMatrix) {
-            let hasA = allNames.some(name => rule.groupA.some(k => name.includes(k.toLowerCase())));
-            let hasB = allNames.some(name => rule.groupB.some(k => name.includes(k.toLowerCase())));
+            let hasA = allNames.some(name => rule.groupA.some(k => new RegExp(`\\b${normalizeStr(k)}\\b`).test(name)));
+            let hasB = allNames.some(name => rule.groupB.some(k => new RegExp(`\\b${normalizeStr(k)}\\b`).test(name)));
             if (hasA && hasB) {
                 isBlocked = true;
                 errorMessage = "ERRO DE SEGURANÇA: Mistura incompatível detectada (" + rule.error + "). Use recipientes separados.";
@@ -438,6 +443,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (isBlocked) {
             mixtureError.textContent = errorMessage;
+            mixtureError.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+            mixtureError.style.color = 'var(--danger)';
+            mixtureError.style.border = 'none';
             mixtureError.classList.remove('hidden');
             document.getElementById('printBtn').disabled = true;
             document.getElementById('printBtn').style.opacity = '0.5';
@@ -2052,23 +2060,22 @@ async function searchPubChem(query) {
                 }
 
                 // Palavra de Advertência e Alerta de Segurança
-                const alertBanner = document.getElementById('pdSafetyAlert');
-                const alertText = document.getElementById('pdSafetyAlertText');
+                const alertBanner = document.getElementById('mixtureError');
                 const printBtn = document.getElementById('printBtn');
                 
                 // Verifica severidade
                 const hasCritical = (data.safety_alert && (data.safety_alert.includes('[CRITICAL]') || data.safety_alert.includes('[FATAL]'))) || (data.details && data.details.incompatibilities && data.details.incompatibilities.some(i => i.severity === 'CRITICAL' || i.severity === 'FATAL'));
                 document.getElementById('pdAdvertencia').textContent = hasCritical ? 'PERIGO' : 'ATENÇÃO';
 
-                if (alertBanner && alertText && data.safety_alert) {
+                if (alertBanner && data.safety_alert) {
                     if (data.safety_alert.includes('[CRITICAL]') || data.safety_alert.includes('[FATAL]') || data.safety_alert.includes('[WARNING]')) {
-                        alertText.textContent = data.safety_alert;
-                        alertBanner.style.display = 'block';
+                        alertBanner.textContent = data.safety_alert;
+                        alertBanner.classList.remove('hidden');
                         
                         if (hasCritical) {
-                            alertBanner.style.backgroundColor = '#fee2e2';
-                            alertBanner.style.color = '#dc2626';
-                            alertBanner.style.border = '2px solid #ef4444';
+                            alertBanner.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                            alertBanner.style.color = 'var(--danger)';
+                            alertBanner.style.border = 'none';
                             if (printBtn) {
                                 printBtn.disabled = true;
                                 printBtn.style.opacity = '0.5';
@@ -2085,7 +2092,8 @@ async function searchPubChem(query) {
                             }
                         }
                     } else {
-                        alertBanner.style.display = 'none';
+                        // Backend confirms no error, hide the banner
+                        alertBanner.classList.add('hidden');
                         if (printBtn) {
                             printBtn.disabled = false;
                             printBtn.style.opacity = '1';
@@ -2093,7 +2101,7 @@ async function searchPubChem(query) {
                         }
                     }
                 } else if (alertBanner) {
-                    alertBanner.style.display = 'none';
+                    alertBanner.classList.add('hidden');
                     if (printBtn) {
                         printBtn.disabled = false;
                         printBtn.style.opacity = '1';
