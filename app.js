@@ -62,12 +62,12 @@ async function checkSession() {
             document.getElementById('authModal').classList.add('hidden');
             document.getElementById('userDisplay').textContent = currentUser.email;
             document.getElementById('logoutBtn').classList.remove('hidden');
-            
+
             const reportsBtn = document.getElementById('reportsBtn');
-            if(reportsBtn) reportsBtn.classList.remove('hidden');
+            if (reportsBtn) reportsBtn.classList.remove('hidden');
 
             const loadMixtureBtn = document.getElementById('loadMixtureBtn');
-            if(loadMixtureBtn) {
+            if (loadMixtureBtn) {
                 loadMixtureBtn.style.display = 'flex';
                 loadMixtureBtn.classList.remove('hidden');
             }
@@ -77,18 +77,18 @@ async function checkSession() {
                 const searchInput = document.getElementById('searchInput');
                 if (searchInput) searchInput.focus();
             }, 100);
-            
+
             // Carrega o perfil da empresa vinculado à conta
             loadUserProfile();
-              await loadMyProducts();
+            await loadMyProducts();
         } else {
             document.getElementById('authModal').classList.remove('hidden');
             document.getElementById('logoutBtn').classList.add('hidden');
             const reportsBtn = document.getElementById('reportsBtn');
-            if(reportsBtn) reportsBtn.classList.add('hidden');
+            if (reportsBtn) reportsBtn.classList.add('hidden');
 
             const loadMixtureBtn = document.getElementById('loadMixtureBtn');
-            if(loadMixtureBtn) {
+            if (loadMixtureBtn) {
                 loadMixtureBtn.style.display = 'none';
                 loadMixtureBtn.classList.add('hidden');
             }
@@ -107,14 +107,14 @@ async function loadMyProducts() {
     try {
         const { data, error } = await supabaseClient.from('meus_produtos').select('*').eq('user_id', currentUser.id);
         if (data) {
-            
+
             // Gaveta 1: Catálogo (Meu Banco) - Não pode ter formato de receita
             const filteredCatalog = data.filter(d => {
                 try {
                     const obs = JSON.parse(d.observacoes || '{}');
-                    if (obs && obs.subtipo === 'receita') return false; 
-                    if (Array.isArray(obs)) return false; 
-                } catch(e) {}
+                    if (obs && obs.subtipo === 'receita') return false;
+                    if (Array.isArray(obs)) return false;
+                } catch (e) { }
                 return true;
             });
 
@@ -135,7 +135,7 @@ async function loadMyProducts() {
                     const obs = JSON.parse(d.observacoes || '{}');
                     if (obs && obs.subtipo === 'receita') return true;
                     if (Array.isArray(obs)) return true;
-                } catch(e) {}
+                } catch (e) { }
                 return false;
             });
 
@@ -166,7 +166,7 @@ async function loadUserProfile() {
             .select('*')
             .eq('user_id', currentUser.id)
             .single();
-            
+
         if (data) {
             document.getElementById('geradorEmpresa').value = data.empresa || '';
             document.getElementById('geradorEndereco').value = data.endereco || '';
@@ -180,7 +180,7 @@ async function loadUserProfile() {
 
 document.addEventListener('DOMContentLoaded', () => {
     checkSession();
-    
+
     const authForm = document.getElementById('authForm');
     const authErrorMsg = document.getElementById('authErrorMsg');
 
@@ -201,20 +201,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('registerBtn').addEventListener('click', async (e) => {
         e.preventDefault();
-        
+
         if (!supabaseClient) { alert("Supabase não carregado!"); return; }
-        
+
         const email = document.getElementById('authEmail').value;
         const password = document.getElementById('authPassword').value;
         authErrorMsg.classList.add('hidden');
-        
-        if(!email || !password) {
+
+        if (!email || !password) {
             authErrorMsg.textContent = "Por favor, preencha E-mail e Senha para criar a conta.";
             authErrorMsg.style.color = "var(--danger)";
             authErrorMsg.classList.remove('hidden');
             return;
         }
-        
+
         authErrorMsg.textContent = "Criando conta, aguarde...";
         authErrorMsg.style.color = "var(--text-primary)";
         authErrorMsg.classList.remove('hidden');
@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const backToLoginBtn2 = document.getElementById('backToLoginBtn2');
 
     // Mudar para tela de solicitar e-mail
-    if(forgotPasswordLnk) {
+    if (forgotPasswordLnk) {
         forgotPasswordLnk.addEventListener('click', (e) => {
             e.preventDefault();
             authForm.classList.add('hidden');
@@ -269,15 +269,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('otpVerErrorMsg').classList.add('hidden');
         setTimeout(() => { document.getElementById('authEmail').focus(); }, 100);
     };
-    if(backToLoginBtn1) backToLoginBtn1.addEventListener('click', resetForms);
-    if(backToLoginBtn2) backToLoginBtn2.addEventListener('click', resetForms);
+    if (backToLoginBtn1) backToLoginBtn1.addEventListener('click', resetForms);
+    if (backToLoginBtn2) backToLoginBtn2.addEventListener('click', resetForms);
 
     // Enviar Link de Recuperação
     document.getElementById('sendOtpBtn').addEventListener('click', async (e) => {
         e.preventDefault();
         const email = document.getElementById('otpEmail').value;
         const errMsg = document.getElementById('otpReqErrorMsg');
-        if(!email) return;
+        if (!email) return;
 
         errMsg.classList.remove('hidden');
         errMsg.style.color = "var(--text-primary)";
@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             errMsg.style.color = "var(--accent)";
             errMsg.textContent = "E-mail enviado! Verifique o link ou o código de 6 dígitos.";
-            
+
             setTimeout(() => {
                 otpRequestForm.classList.add('hidden');
                 otpVerifyForm.classList.remove('hidden');
@@ -310,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
             authForm.classList.add('hidden');
             otpRequestForm.classList.add('hidden');
             otpVerifyForm.classList.remove('hidden');
-            
+
             // Oculta o campo de código OTP pois o usuário clicou no link e já foi autenticado
             const otpGroup = document.getElementById('otpCodeGroup');
             if (otpGroup) otpGroup.classList.add('hidden');
@@ -326,17 +326,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const errMsg = document.getElementById('otpVerErrorMsg');
         const email = document.getElementById('otpEmail').value;
 
-        if(!newPassword || !confirmNewPassword) return;
+        if (!newPassword || !confirmNewPassword) return;
 
         errMsg.classList.remove('hidden');
 
-        if(newPassword.length < 6) {
+        if (newPassword.length < 6) {
             errMsg.style.color = "var(--danger)";
             errMsg.textContent = "A senha deve ter pelo menos 6 caracteres.";
             return;
         }
 
-        if(newPassword !== confirmNewPassword) {
+        if (newPassword !== confirmNewPassword) {
             errMsg.style.color = "var(--danger)";
             errMsg.textContent = "As senhas não coincidem.";
             return;
@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- Módulo de Nuvem ---
 async function saveChemicalToCloud(produto) {
     if (!currentUser) return; // Só salva se logado
-    
+
     const payload = {
         cas_number: produto.CAS_Number,
         common_name: produto.Common_Name,
@@ -393,7 +393,7 @@ async function saveChemicalToCloud(produto) {
     const { data, error } = await supabaseClient
         .from('produtos_quimicos')
         .upsert(payload, { onConflict: 'cas_number, common_name' });
-        
+
     if (error) console.error("Erro ao salvar produto na nuvem:", error);
 }
 
@@ -401,12 +401,12 @@ async function saveChemicalToCloud(produto) {
 
 async function saveLabelHistory() {
     if (!currentUser) return;
-    
+
     const empresa = document.getElementById('geradorEmpresa').value || 'Não informada';
     const volume = document.getElementById('volMaximo').value || 'Não informado';
     const dataAcumulo = document.getElementById('dataDescarte').value || new Date().toISOString().split('T')[0];
     const produtoNome = document.getElementById('pdNome').textContent;
-    
+
     const { error } = await supabaseClient
         .from('historico_descartes')
         .insert([{
@@ -416,7 +416,7 @@ async function saveLabelHistory() {
             data_acumulo: dataAcumulo,
             produto_nome: produtoNome
         }]);
-        
+
     if (error) console.error("Erro ao salvar histórico de etiqueta:", error);
 }
 
@@ -428,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mixtureList = document.getElementById('mixtureList');
     const mixtureError = document.getElementById('mixtureError');
     let currentMixture = [];
-    
+
     document.getElementById('complianceBtn').addEventListener('click', () => {
         document.getElementById('complianceModal').classList.remove('hidden');
     });
@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkIncompatibility() {
         let isBlocked = false;
         let errorMessage = "";
-        
+
         function normalizeStr(str) {
             return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ');
         }
@@ -458,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rc = r.produto.Risk_Class || "";
             return normalizeStr(cn + " " + iupac + " " + rc);
         });
-        
+
         for (const rule of incompatibilityMatrix) {
             let hasA = allNames.some(name => rule.groupA.some(k => new RegExp(`\\b${normalizeStr(k)}\\b`).test(name)));
             let hasB = allNames.some(name => rule.groupB.some(k => new RegExp(`\\b${normalizeStr(k)}\\b`).test(name)));
@@ -468,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             }
         }
-        
+
         if (isBlocked) {
             mixtureError.textContent = errorMessage;
             mixtureError.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
@@ -485,10 +485,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Fallback inicial para localStorage (será sobrescrito pelo Supabase se houver dados na nuvem)
-    if(localStorage.getItem('gerador_empresa')) document.getElementById('geradorEmpresa').value = localStorage.getItem('gerador_empresa');
-    if(localStorage.getItem('gerador_endereco')) document.getElementById('geradorEndereco').value = localStorage.getItem('gerador_endereco');
-    if(localStorage.getItem('gerador_resp')) document.getElementById('geradorResp').value = localStorage.getItem('gerador_resp');
-    if(localStorage.getItem('gerador_tel')) document.getElementById('geradorTel').value = localStorage.getItem('gerador_tel');
+    if (localStorage.getItem('gerador_empresa')) document.getElementById('geradorEmpresa').value = localStorage.getItem('gerador_empresa');
+    if (localStorage.getItem('gerador_endereco')) document.getElementById('geradorEndereco').value = localStorage.getItem('gerador_endereco');
+    if (localStorage.getItem('gerador_resp')) document.getElementById('geradorResp').value = localStorage.getItem('gerador_resp');
+    if (localStorage.getItem('gerador_tel')) document.getElementById('geradorTel').value = localStorage.getItem('gerador_tel');
 
     document.getElementById('saveDataBtn').addEventListener('click', async () => {
         const btn = document.getElementById('saveDataBtn');
@@ -513,7 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     telefone: tel,
                     updated_at: new Date()
                 });
-            
+
             if (error) {
                 console.error("Erro ao salvar perfil:", error);
                 alert("Erro ao salvar na nuvem, mas guardaremos no seu navegador.");
@@ -525,7 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('gerador_endereco', endereco);
         localStorage.setItem('gerador_resp', resp);
         localStorage.setItem('gerador_tel', tel);
-        
+
         btn.textContent = originalText;
         btn.disabled = false;
         alert('Dados da empresa salvos na sua conta com sucesso!');
@@ -544,161 +544,161 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     // Dicionário Básico de Frases P e H comuns para Padronização
-const dictPhrases = {
-    // Frases H - Físicos
-    "H200": "H200: Explosivo instável.", "H201": "H201: Explosivo; perigo de explosão em massa.", "H202": "H202: Explosivo; perigo de projeção.", "H203": "H203: Explosivo; perigo de incêndio, sopro ou projeção.", "H204": "H204: Perigo de incêndio ou projeção.", "H205": "H205: Perigo de explosão em massa em caso de incêndio.", "H220": "H220: Gás extremamente inflamável.", "H221": "H221: Gás inflamável.", "H222": "H222: Aerossol extremamente inflamável.", "H223": "H223: Aerossol inflamável.", "H224": "H224: Líquido e vapor extremamente inflamáveis.", "H225": "H225: Líquido e vapor altamente inflamáveis.", "H226": "H226: Líquido e vapor inflamáveis.", "H227": "H227: Líquido combustível.", "H228": "H228: Sólido inflamável.", "H229": "H229: Recipiente sob pressão: risco de explosão sob a ação do calor.", "H230": "H230: Pode reagir explosivamente mesmo na ausência de ar.", "H231": "H231: Pode reagir explosivamente mesmo na ausência de ar a pressão e/ou temperatura elevadas.", "H240": "H240: Risco de explosão sob a ação do calor.", "H241": "H241: Risco de incêndio ou explosão sob a ação do calor.", "H242": "H242: Risco de incêndio sob a ação do calor.", "H250": "H250: Risco de incêndio espontâneo em contato com o ar.", "H251": "H251: Auto-aquecimento: risco de incêndio.", "H252": "H252: Auto-aquecimento em grandes quantidades: risco de incêndio.", "H260": "H260: Em contato com a água libera gases inflamáveis que podem inflamar-se espontaneamente.", "H261": "H261: Em contato com a água libera gases inflamáveis.", "H270": "H270: Pode provocar ou agravar incêndios; comburente.", "H271": "H271: Pode provocar incêndio ou explosão; muito comburente.", "H272": "H272: Pode agravar incêndios; comburente.", "H280": "H280: Contém gás sob pressão; pode explodir sob ação do calor.", "H281": "H281: Contém gás refrigerado; pode provocar queimaduras ou lesões criogênicas.", "H290": "H290: Pode ser corrosivo para os metais.",
-    // Frases H - Saúde
-    "H300": "H300: Fatal se ingerido.", "H301": "H301: Tóxico se ingerido.", "H302": "H302: Nocivo se ingerido.", "H303": "H303: Pode ser nocivo se ingerido.", "H304": "H304: Pode ser fatal se ingerido e penetrar nas vias respiratórias.", "H305": "H305: Pode ser nocivo se ingerido e penetrar nas vias respiratórias.", "H310": "H310: Fatal em contato com a pele.", "H311": "H311: Tóxico em contato com a pele.", "H312": "H312: Nocivo em contato com a pele.", "H313": "H313: Pode ser nocivo em contato com a pele.", "H314": "H314: Provoca queimadura severa à pele e dano ocular.", "H315": "H315: Provoca irritação à pele.", "H316": "H316: Provoca irritação moderada à pele.", "H317": "H317: Pode provocar reações alérgicas na pele.", "H318": "H318: Provoca lesões oculares graves.", "H319": "H319: Provoca irritação ocular grave.", "H320": "H320: Provoca irritação ocular.", "H330": "H330: Fatal se inalado.", "H331": "H331: Tóxico se inalado.", "H332": "H332: Nocivo se inalado.", "H333": "H333: Pode ser nocivo se inalado.", "H334": "H334: Quando inalado, pode provocar sintomas de alergia, asma ou dificuldade respiratória.", "H335": "H335: Pode provocar irritação das vias respiratórias.", "H336": "H336: Pode provocar sonolência ou vertigem.", "H340": "H340: Pode provocar defeitos genéticos.", "H341": "H341: Suspeito de provocar defeitos genéticos.", "H350": "H350: Pode provocar câncer.", "H351": "H351: Suspeito de provocar câncer.", "H360": "H360: Pode prejudicar a fertilidade ou o feto.", "H361": "H361: Suspeito de prejudicar a fertilidade ou o feto.", "H362": "H362: Pode ser nocivo para as crianças alimentadas com leite materno.", "H370": "H370: Provoca danos aos órgãos.", "H371": "H371: Pode provocar danos aos órgãos.", "H372": "H372: Provoca danos aos órgãos por exposição repetida ou prolongada.", "H373": "H373: Pode provocar danos aos órgãos por exposição repetida ou prolongada.",
-    // Frases H - Meio Ambiente
-    "H400": "H400: Muito tóxico para a vida aquática.", "H401": "H401: Tóxico para a vida aquática.", "H402": "H402: Nocivo para a vida aquática.", "H410": "H410: Muito tóxico para a vida aquática com efeitos prolongados.", "H411": "H411: Tóxico para a vida aquática com efeitos prolongados.", "H412": "H412: Nocivo para a vida aquática com efeitos prolongados.", "H413": "H413: Pode provocar efeitos nocivos prolongados para a vida aquática.", "H420": "H420: Prejudica a saúde pública e o meio ambiente por destruir o ozônio.",
-    // Frases P - Gerais e Prevenção
-    "P101": "P101: Se for necessário consultar um médico, tenha em mãos a embalagem ou o rótulo.", "P102": "P102: Mantenha fora do alcance das crianças.", "P103": "P103: Leia o rótulo antes de utilizar o produto.", "P201": "P201: Obtenha instruções específicas antes da utilização.", "P202": "P202: Não manuseie o produto antes de ter lido e compreendido todas as precauções.", "P203": "P203: Obtenha, leia e siga todas as instruções de segurança antes de usar.", "P210": "P210: Mantenha afastado do calor, faísca, chama aberta e superfícies quentes. Não fume.", "P211": "P211: Não pulverize sobre chama aberta ou outra fonte de ignição.", "P212": "P212: Evite o aquecimento em ambiente confinado ou com redução de flegmatizante.", "P220": "P220: Mantenha afastado de roupa e materiais combustíveis.", "P222": "P222: Não deixe em contato com o ar.", "P223": "P223: Evite o contato com a água.", "P230": "P230: Mantenha úmido.", "P231": "P231: Manuseie e armazene o conteúdo sob gás inerte.", "P232": "P232: Proteja da umidade.", "P233": "P233: Mantenha o recipiente hermeticamente fechado.", "P234": "P234: Conserve somente no recipiente original.", "P235": "P235: Mantenha em local fresco.", "P240": "P240: Aterre o recipiente e o equipamento receptor durante transferências.", "P241": "P241: Utilize equipamento elétrico/de ventilação/de iluminação à prova de explosão.", "P242": "P242: Utilize apenas ferramentas antifaiscantes.", "P243": "P243: Evite o acúmulo de cargas eletrostáticas.", "P244": "P244: Mantenha as válvulas e as conexões isentas de óleo e graxa.", "P250": "P250: Evite abrasão/choque/fricção.", "P251": "P251: Não fure ou queime, mesmo após o uso.", "P260": "P260: Não inale as poeiras, fumos, gases, névoas, vapores e aerossóis.", "P261": "P261: Evite inalar as poeiras, fumos, gases, vapores e aerossóis.", "P262": "P262: Evite o contato com os olhos, a pele ou a roupa.", "P263": "P263: Evite o contato durante a gravidez/amamentação.", "P264": "P264: Lave cuidadosamente após o manuseio.", "P270": "P270: Não coma, beba ou fume durante a utilização deste produto.", "P271": "P271: Utilize apenas ao ar livre ou em locais bem ventilados.", "P272": "P272: A roupa de trabalho contaminada não pode sair do local de trabalho.", "P273": "P273: Evite a liberação para o meio ambiente.", "P280": "P280: Use luvas, roupa e proteção ocular/facial.", "P282": "P282: Use luvas com isolamento térmico e proteção ocular/facial.", "P283": "P283: Use roupa resistente ao fogo/retardante de chamas.", "P284": "P284: Use equipamento de proteção respiratória.",
-    // Frases P - Resposta e Primeiros Socorros
-    "P301": "P301: EM CASO DE INGESTÃO:", "P302": "P302: EM CASO DE CONTATO COM A PELE:", "P303": "P303: EM CASO DE CONTATO COM A PELE (ou o cabelo):", "P304": "P304: EM CASO DE INALAÇÃO:", "P305": "P305: EM CASO DE CONTATO COM OS OLHOS:", "P306": "P306: EM CASO DE CONTATO COM A ROUPA:", "P308": "P308: EM CASO DE exposição ou suspeita de exposição:", "P310": "P310: Contate imediatamente um CENTRO DE TOXICOLOGIA ou médico.", "P311": "P311: Contate um CENTRO DE INFORMAÇÃO TOXICOLÓGICA ou um médico.", "P312": "P312: Caso sinta indisposição, contate um médico.", "P313": "P313: Consulte um médico.", "P314": "P314: Em caso de indisposição, consulte um médico.", "P315": "P315: Consulte imediatamente um médico.", "P316": "P316: Obtenha ajuda médica de emergência imediatamente.", "P317": "P317: Obtenha ajuda médica.", "P318": "P318: Se houver exposição, obtenha ajuda médica.", "P319": "P319: Se não se sentir bem, obtenha ajuda médica.", "P320": "P320: Tratamento específico urgente é exigido.", "P321": "P321: Tratamento específico.", "P330": "P330: Enxágue a boca.", "P331": "P331: NÃO provoque vômito.", "P332": "P332: Em caso de irritação cutânea:", "P333": "P333: Em caso de irritação ou erupção cutânea:", "P334": "P334: Mergulhe em água fria ou aplique compressas úmidas.", "P335": "P335: Sacuda as partículas soltas da pele.", "P336": "P336: Descongele as partes congeladas com água morna. Não friccione a área.", "P337": "P337: Caso a irritação ocular persista:", "P338": "P338: Remova as lentes de contato, se for fácil. Continue enxaguando.", "P340": "P340: Remova a pessoa para local ventilado e mantenha-a em repouso.", "P342": "P342: Em caso de sintomas respiratórios:", "P351": "P351: Enxágue cuidadosamente com água durante vários minutos.", "P352": "P352: Lave com água e sabão em abundância.", "P353": "P353: Enxágue a pele com água / tome uma ducha.", "P360": "P360: Enxágue imediatamente a roupa e a pele com água antes de tirar a roupa.", "P361": "P361: Retire imediatamente toda a roupa contaminada.", "P362": "P362: Retire a roupa contaminada e lave-a antes de usar.", "P363": "P363: Lave a roupa contaminada antes de usá-la novamente.", "P370": "P370: Em caso de incêndio:", "P371": "P371: Em caso de incêndio grave ou em grandes quantidades:", "P372": "P372: Risco de explosão em caso de incêndio.", "P373": "P373: NÃO combata o incêndio quando o fogo atingir os explosivos.", "P375": "P375: Combata o incêndio à distância, devido ao risco de explosão.", "P376": "P376: Detenha o vazamento se isso puder ser feito com segurança.", "P377": "P377: Incêndio por vazamento de gás: não apague, a menos que possa deter o vazamento.", "P378": "P378: Para a extinção utilize extintor apropriado.", "P380": "P380: Evacue a área.", "P381": "P381: Elimine todas as fontes de ignição se for seguro fazê-lo.", "P390": "P390: Absorva o produto derramado para evitar danos materiais.", "P391": "P391: Recolha o material derramado.",
-    // Frases P - Combinações
-    "P301+P312": "P301+P312: EM CASO DE INGESTÃO: Contate um médico caso sinta indisposição.", "P301+P316": "P301+P316: EM CASO DE INGESTÃO: Obtenha ajuda médica de emergência.", "P301+P317": "P301+P317: EM CASO DE INGESTÃO: Obtenha ajuda médica.", "P301+P330+P331": "P301+P330+P331: EM CASO DE INGESTÃO: Enxágue a boca. NÃO provoque vômito.", "P302+P352": "P302+P352: EM CASO DE CONTATO COM A PELE: Lave com água em abundância.", "P303+P361+P353": "P303+P361+P353: EM CASO DE CONTATO COM A PELE: Retire a roupa contaminada. Enxágue a pele.", "P304+P340": "P304+P340: EM CASO DE INALAÇÃO: Remova a pessoa para local ventilado.", "P305+P351+P338": "P305+P351+P338: EM CASO DE CONTATO COM OS OLHOS: Enxágue com água. Remova as lentes.", "P308+P311": "P308+P311: EM CASO DE exposição: Contate um médico.", "P308+P313": "P308+P313: EM CASO DE exposição: Consulte um médico.", "P332+P313": "P332+P313: Caso a irritação cutânea persista: Consulte um médico.", "P333+P313": "P333+P313: Em caso de irritação cutânea: Consulte um médico.", "P337+P313": "P337+P313: Caso a irritação ocular persista: Consulte um médico.", "P342+P311": "P342+P311: Em caso de sintomas respiratórios: Contate um médico.", "P370+P378": "P370+P378: Em caso de incêndio: Utilize pó químico, CO2 ou espuma para extinção.",
-    // Frases P - Armazenamento e Descarte
-    "P401": "P401: Armazene de acordo com a regulamentação.", "P402": "P402: Armazene em local seco.", "P403": "P403: Armazene em local bem ventilado.", "P404": "P404: Armazene em recipiente fechado.", "P405": "P405: Armazene em local fechado à chave.", "P406": "P406: Armazene num recipiente resistente à corrosão.", "P407": "P407: Deixe um espaço entre as pilhas/paletes.", "P410": "P410: Mantenha ao abrigo da luz solar.", "P411": "P411: Armazene a temperaturas não superiores a X °C.", "P412": "P412: Não exponha a temperaturas superiores a 50°C.", "P413": "P413: Armazene quantidades de material a granel superiores a X kg a temperatura controlada.", "P420": "P420: Armazene afastado de outros materiais.", "P403+P233": "P403+P233: Armazene em local bem ventilado. Mantenha o recipiente fechado.", "P403+P235": "P403+P235: Armazene em local bem ventilado. Mantenha em local fresco.", "P410+P403": "P410+P403: Mantenha ao abrigo da luz solar. Armazene em local bem ventilado.", "P410+P412": "P410+P412: Mantenha ao abrigo da luz solar. Não exponha a calor.",
-    "P501": "P501: Descarte o conteúdo/recipiente conforme a legislação local de destinação de resíduos químicos.", "P502": "P502: Consulte o fabricante para obter informações sobre a recuperação/reciclagem."
-};
+    const dictPhrases = {
+        // Frases H - Físicos
+        "H200": "H200: Explosivo instável.", "H201": "H201: Explosivo; perigo de explosão em massa.", "H202": "H202: Explosivo; perigo de projeção.", "H203": "H203: Explosivo; perigo de incêndio, sopro ou projeção.", "H204": "H204: Perigo de incêndio ou projeção.", "H205": "H205: Perigo de explosão em massa em caso de incêndio.", "H220": "H220: Gás extremamente inflamável.", "H221": "H221: Gás inflamável.", "H222": "H222: Aerossol extremamente inflamável.", "H223": "H223: Aerossol inflamável.", "H224": "H224: Líquido e vapor extremamente inflamáveis.", "H225": "H225: Líquido e vapor altamente inflamáveis.", "H226": "H226: Líquido e vapor inflamáveis.", "H227": "H227: Líquido combustível.", "H228": "H228: Sólido inflamável.", "H229": "H229: Recipiente sob pressão: risco de explosão sob a ação do calor.", "H230": "H230: Pode reagir explosivamente mesmo na ausência de ar.", "H231": "H231: Pode reagir explosivamente mesmo na ausência de ar a pressão e/ou temperatura elevadas.", "H240": "H240: Risco de explosão sob a ação do calor.", "H241": "H241: Risco de incêndio ou explosão sob a ação do calor.", "H242": "H242: Risco de incêndio sob a ação do calor.", "H250": "H250: Risco de incêndio espontâneo em contato com o ar.", "H251": "H251: Auto-aquecimento: risco de incêndio.", "H252": "H252: Auto-aquecimento em grandes quantidades: risco de incêndio.", "H260": "H260: Em contato com a água libera gases inflamáveis que podem inflamar-se espontaneamente.", "H261": "H261: Em contato com a água libera gases inflamáveis.", "H270": "H270: Pode provocar ou agravar incêndios; comburente.", "H271": "H271: Pode provocar incêndio ou explosão; muito comburente.", "H272": "H272: Pode agravar incêndios; comburente.", "H280": "H280: Contém gás sob pressão; pode explodir sob ação do calor.", "H281": "H281: Contém gás refrigerado; pode provocar queimaduras ou lesões criogênicas.", "H290": "H290: Pode ser corrosivo para os metais.",
+        // Frases H - Saúde
+        "H300": "H300: Fatal se ingerido.", "H301": "H301: Tóxico se ingerido.", "H302": "H302: Nocivo se ingerido.", "H303": "H303: Pode ser nocivo se ingerido.", "H304": "H304: Pode ser fatal se ingerido e penetrar nas vias respiratórias.", "H305": "H305: Pode ser nocivo se ingerido e penetrar nas vias respiratórias.", "H310": "H310: Fatal em contato com a pele.", "H311": "H311: Tóxico em contato com a pele.", "H312": "H312: Nocivo em contato com a pele.", "H313": "H313: Pode ser nocivo em contato com a pele.", "H314": "H314: Provoca queimadura severa à pele e dano ocular.", "H315": "H315: Provoca irritação à pele.", "H316": "H316: Provoca irritação moderada à pele.", "H317": "H317: Pode provocar reações alérgicas na pele.", "H318": "H318: Provoca lesões oculares graves.", "H319": "H319: Provoca irritação ocular grave.", "H320": "H320: Provoca irritação ocular.", "H330": "H330: Fatal se inalado.", "H331": "H331: Tóxico se inalado.", "H332": "H332: Nocivo se inalado.", "H333": "H333: Pode ser nocivo se inalado.", "H334": "H334: Quando inalado, pode provocar sintomas de alergia, asma ou dificuldade respiratória.", "H335": "H335: Pode provocar irritação das vias respiratórias.", "H336": "H336: Pode provocar sonolência ou vertigem.", "H340": "H340: Pode provocar defeitos genéticos.", "H341": "H341: Suspeito de provocar defeitos genéticos.", "H350": "H350: Pode provocar câncer.", "H351": "H351: Suspeito de provocar câncer.", "H360": "H360: Pode prejudicar a fertilidade ou o feto.", "H361": "H361: Suspeito de prejudicar a fertilidade ou o feto.", "H362": "H362: Pode ser nocivo para as crianças alimentadas com leite materno.", "H370": "H370: Provoca danos aos órgãos.", "H371": "H371: Pode provocar danos aos órgãos.", "H372": "H372: Provoca danos aos órgãos por exposição repetida ou prolongada.", "H373": "H373: Pode provocar danos aos órgãos por exposição repetida ou prolongada.",
+        // Frases H - Meio Ambiente
+        "H400": "H400: Muito tóxico para a vida aquática.", "H401": "H401: Tóxico para a vida aquática.", "H402": "H402: Nocivo para a vida aquática.", "H410": "H410: Muito tóxico para a vida aquática com efeitos prolongados.", "H411": "H411: Tóxico para a vida aquática com efeitos prolongados.", "H412": "H412: Nocivo para a vida aquática com efeitos prolongados.", "H413": "H413: Pode provocar efeitos nocivos prolongados para a vida aquática.", "H420": "H420: Prejudica a saúde pública e o meio ambiente por destruir o ozônio.",
+        // Frases P - Gerais e Prevenção
+        "P101": "P101: Se for necessário consultar um médico, tenha em mãos a embalagem ou o rótulo.", "P102": "P102: Mantenha fora do alcance das crianças.", "P103": "P103: Leia o rótulo antes de utilizar o produto.", "P201": "P201: Obtenha instruções específicas antes da utilização.", "P202": "P202: Não manuseie o produto antes de ter lido e compreendido todas as precauções.", "P203": "P203: Obtenha, leia e siga todas as instruções de segurança antes de usar.", "P210": "P210: Mantenha afastado do calor, faísca, chama aberta e superfícies quentes. Não fume.", "P211": "P211: Não pulverize sobre chama aberta ou outra fonte de ignição.", "P212": "P212: Evite o aquecimento em ambiente confinado ou com redução de flegmatizante.", "P220": "P220: Mantenha afastado de roupa e materiais combustíveis.", "P222": "P222: Não deixe em contato com o ar.", "P223": "P223: Evite o contato com a água.", "P230": "P230: Mantenha úmido.", "P231": "P231: Manuseie e armazene o conteúdo sob gás inerte.", "P232": "P232: Proteja da umidade.", "P233": "P233: Mantenha o recipiente hermeticamente fechado.", "P234": "P234: Conserve somente no recipiente original.", "P235": "P235: Mantenha em local fresco.", "P240": "P240: Aterre o recipiente e o equipamento receptor durante transferências.", "P241": "P241: Utilize equipamento elétrico/de ventilação/de iluminação à prova de explosão.", "P242": "P242: Utilize apenas ferramentas antifaiscantes.", "P243": "P243: Evite o acúmulo de cargas eletrostáticas.", "P244": "P244: Mantenha as válvulas e as conexões isentas de óleo e graxa.", "P250": "P250: Evite abrasão/choque/fricção.", "P251": "P251: Não fure ou queime, mesmo após o uso.", "P260": "P260: Não inale as poeiras, fumos, gases, névoas, vapores e aerossóis.", "P261": "P261: Evite inalar as poeiras, fumos, gases, vapores e aerossóis.", "P262": "P262: Evite o contato com os olhos, a pele ou a roupa.", "P263": "P263: Evite o contato durante a gravidez/amamentação.", "P264": "P264: Lave cuidadosamente após o manuseio.", "P270": "P270: Não coma, beba ou fume durante a utilização deste produto.", "P271": "P271: Utilize apenas ao ar livre ou em locais bem ventilados.", "P272": "P272: A roupa de trabalho contaminada não pode sair do local de trabalho.", "P273": "P273: Evite a liberação para o meio ambiente.", "P280": "P280: Use luvas, roupa e proteção ocular/facial.", "P282": "P282: Use luvas com isolamento térmico e proteção ocular/facial.", "P283": "P283: Use roupa resistente ao fogo/retardante de chamas.", "P284": "P284: Use equipamento de proteção respiratória.",
+        // Frases P - Resposta e Primeiros Socorros
+        "P301": "P301: EM CASO DE INGESTÃO:", "P302": "P302: EM CASO DE CONTATO COM A PELE:", "P303": "P303: EM CASO DE CONTATO COM A PELE (ou o cabelo):", "P304": "P304: EM CASO DE INALAÇÃO:", "P305": "P305: EM CASO DE CONTATO COM OS OLHOS:", "P306": "P306: EM CASO DE CONTATO COM A ROUPA:", "P308": "P308: EM CASO DE exposição ou suspeita de exposição:", "P310": "P310: Contate imediatamente um CENTRO DE TOXICOLOGIA ou médico.", "P311": "P311: Contate um CENTRO DE INFORMAÇÃO TOXICOLÓGICA ou um médico.", "P312": "P312: Caso sinta indisposição, contate um médico.", "P313": "P313: Consulte um médico.", "P314": "P314: Em caso de indisposição, consulte um médico.", "P315": "P315: Consulte imediatamente um médico.", "P316": "P316: Obtenha ajuda médica de emergência imediatamente.", "P317": "P317: Obtenha ajuda médica.", "P318": "P318: Se houver exposição, obtenha ajuda médica.", "P319": "P319: Se não se sentir bem, obtenha ajuda médica.", "P320": "P320: Tratamento específico urgente é exigido.", "P321": "P321: Tratamento específico.", "P330": "P330: Enxágue a boca.", "P331": "P331: NÃO provoque vômito.", "P332": "P332: Em caso de irritação cutânea:", "P333": "P333: Em caso de irritação ou erupção cutânea:", "P334": "P334: Mergulhe em água fria ou aplique compressas úmidas.", "P335": "P335: Sacuda as partículas soltas da pele.", "P336": "P336: Descongele as partes congeladas com água morna. Não friccione a área.", "P337": "P337: Caso a irritação ocular persista:", "P338": "P338: Remova as lentes de contato, se for fácil. Continue enxaguando.", "P340": "P340: Remova a pessoa para local ventilado e mantenha-a em repouso.", "P342": "P342: Em caso de sintomas respiratórios:", "P351": "P351: Enxágue cuidadosamente com água durante vários minutos.", "P352": "P352: Lave com água e sabão em abundância.", "P353": "P353: Enxágue a pele com água / tome uma ducha.", "P360": "P360: Enxágue imediatamente a roupa e a pele com água antes de tirar a roupa.", "P361": "P361: Retire imediatamente toda a roupa contaminada.", "P362": "P362: Retire a roupa contaminada e lave-a antes de usar.", "P363": "P363: Lave a roupa contaminada antes de usá-la novamente.", "P370": "P370: Em caso de incêndio:", "P371": "P371: Em caso de incêndio grave ou em grandes quantidades:", "P372": "P372: Risco de explosão em caso de incêndio.", "P373": "P373: NÃO combata o incêndio quando o fogo atingir os explosivos.", "P375": "P375: Combata o incêndio à distância, devido ao risco de explosão.", "P376": "P376: Detenha o vazamento se isso puder ser feito com segurança.", "P377": "P377: Incêndio por vazamento de gás: não apague, a menos que possa deter o vazamento.", "P378": "P378: Para a extinção utilize extintor apropriado.", "P380": "P380: Evacue a área.", "P381": "P381: Elimine todas as fontes de ignição se for seguro fazê-lo.", "P390": "P390: Absorva o produto derramado para evitar danos materiais.", "P391": "P391: Recolha o material derramado.",
+        // Frases P - Combinações
+        "P301+P312": "P301+P312: EM CASO DE INGESTÃO: Contate um médico caso sinta indisposição.", "P301+P316": "P301+P316: EM CASO DE INGESTÃO: Obtenha ajuda médica de emergência.", "P301+P317": "P301+P317: EM CASO DE INGESTÃO: Obtenha ajuda médica.", "P301+P330+P331": "P301+P330+P331: EM CASO DE INGESTÃO: Enxágue a boca. NÃO provoque vômito.", "P302+P352": "P302+P352: EM CASO DE CONTATO COM A PELE: Lave com água em abundância.", "P303+P361+P353": "P303+P361+P353: EM CASO DE CONTATO COM A PELE: Retire a roupa contaminada. Enxágue a pele.", "P304+P340": "P304+P340: EM CASO DE INALAÇÃO: Remova a pessoa para local ventilado.", "P305+P351+P338": "P305+P351+P338: EM CASO DE CONTATO COM OS OLHOS: Enxágue com água. Remova as lentes.", "P308+P311": "P308+P311: EM CASO DE exposição: Contate um médico.", "P308+P313": "P308+P313: EM CASO DE exposição: Consulte um médico.", "P332+P313": "P332+P313: Caso a irritação cutânea persista: Consulte um médico.", "P333+P313": "P333+P313: Em caso de irritação cutânea: Consulte um médico.", "P337+P313": "P337+P313: Caso a irritação ocular persista: Consulte um médico.", "P342+P311": "P342+P311: Em caso de sintomas respiratórios: Contate um médico.", "P370+P378": "P370+P378: Em caso de incêndio: Utilize pó químico, CO2 ou espuma para extinção.",
+        // Frases P - Armazenamento e Descarte
+        "P401": "P401: Armazene de acordo com a regulamentação.", "P402": "P402: Armazene em local seco.", "P403": "P403: Armazene em local bem ventilado.", "P404": "P404: Armazene em recipiente fechado.", "P405": "P405: Armazene em local fechado à chave.", "P406": "P406: Armazene num recipiente resistente à corrosão.", "P407": "P407: Deixe um espaço entre as pilhas/paletes.", "P410": "P410: Mantenha ao abrigo da luz solar.", "P411": "P411: Armazene a temperaturas não superiores a X °C.", "P412": "P412: Não exponha a temperaturas superiores a 50°C.", "P413": "P413: Armazene quantidades de material a granel superiores a X kg a temperatura controlada.", "P420": "P420: Armazene afastado de outros materiais.", "P403+P233": "P403+P233: Armazene em local bem ventilado. Mantenha o recipiente fechado.", "P403+P235": "P403+P235: Armazene em local bem ventilado. Mantenha em local fresco.", "P410+P403": "P410+P403: Mantenha ao abrigo da luz solar. Armazene em local bem ventilado.", "P410+P412": "P410+P412: Mantenha ao abrigo da luz solar. Não exponha a calor.",
+        "P501": "P501: Descarte o conteúdo/recipiente conforme a legislação local de destinação de resíduos químicos.", "P502": "P502: Consulte o fabricante para obter informações sobre a recuperação/reciclagem."
+    };
 
-/**
- * Ordena frases H por grau de perigo (do mais perigoso ao menos) e retorna as N primeiras.
- * Prioridade: saúde aguda fatal > tóxico/mutagênico/carcinogênico > físicos graves > nocivo > ambiental
- */
-function sortAndLimitHPhrases(hArray, maxCount = 6) {
-    function getHPriority(code) {
-        const n = parseInt((code.match(/\d{3}/) || ['999'])[0]);
-        // Saúde - Fatal (prioridade máxima)
-        if ([300, 310, 330].includes(n)) return 10 + n;
-        // Saúde - Tóxico / Mutag / Carcinog / Reprod / Órgão
-        if ([301, 311, 331, 340, 350, 360, 304, 370, 371, 372].includes(n)) return 20 + n;
-        // Físicos graves: explosivos, oxidantes, reativos com água
-        if (n >= 200 && n <= 272) return 30 + n;
-        // Saúde - Nocivo / Irritante / Sensibilizante
-        if ([302, 312, 332, 317, 334, 335, 336, 341, 351, 361, 362, 373].includes(n)) return 40 + n;
-        // Físicos menos graves: inflamáveis, gás pressão
-        if (n >= 220 && n < 300) return 50 + n;
-        // Corrosivo / Lesões oculares
-        if ([314, 318, 290].includes(n)) return 25 + n;
-        // Irritante pele/olhos
-        if ([315, 316, 319, 320].includes(n)) return 45 + n;
-        // Ambiental
-        if (n >= 400) return 200 + n;
-        return 999;
+    /**
+     * Ordena frases H por grau de perigo (do mais perigoso ao menos) e retorna as N primeiras.
+     * Prioridade: saúde aguda fatal > tóxico/mutagênico/carcinogênico > físicos graves > nocivo > ambiental
+     */
+    function sortAndLimitHPhrases(hArray, maxCount = 6) {
+        function getHPriority(code) {
+            const n = parseInt((code.match(/\d{3}/) || ['999'])[0]);
+            // Saúde - Fatal (prioridade máxima)
+            if ([300, 310, 330].includes(n)) return 10 + n;
+            // Saúde - Tóxico / Mutag / Carcinog / Reprod / Órgão
+            if ([301, 311, 331, 340, 350, 360, 304, 370, 371, 372].includes(n)) return 20 + n;
+            // Físicos graves: explosivos, oxidantes, reativos com água
+            if (n >= 200 && n <= 272) return 30 + n;
+            // Saúde - Nocivo / Irritante / Sensibilizante
+            if ([302, 312, 332, 317, 334, 335, 336, 341, 351, 361, 362, 373].includes(n)) return 40 + n;
+            // Físicos menos graves: inflamáveis, gás pressão
+            if (n >= 220 && n < 300) return 50 + n;
+            // Corrosivo / Lesões oculares
+            if ([314, 318, 290].includes(n)) return 25 + n;
+            // Irritante pele/olhos
+            if ([315, 316, 319, 320].includes(n)) return 45 + n;
+            // Ambiental
+            if (n >= 400) return 200 + n;
+            return 999;
+        }
+
+        // De-duplicar por código
+        const seen = new Set();
+        const unique = hArray.filter(h => {
+            const code = typeof h === 'object' ? h.code : (h.match(/H\d{3}/) || [''])[0];
+            if (seen.has(code)) return false;
+            seen.add(code);
+            return true;
+        });
+
+        unique.sort((a, b) => {
+            const codeA = typeof a === 'object' ? a.code : (a.match(/H\d{3}/) || [''])[0];
+            const codeB = typeof b === 'object' ? b.code : (b.match(/H\d{3}/) || [''])[0];
+            return getHPriority(codeA) - getHPriority(codeB);
+        });
+
+        return unique.slice(0, maxCount);
     }
 
-    // De-duplicar por código
-    const seen = new Set();
-    const unique = hArray.filter(h => {
-        const code = typeof h === 'object' ? h.code : (h.match(/H\d{3}/)||[''])[0];
-        if (seen.has(code)) return false;
-        seen.add(code);
-        return true;
-    });
+    function processPhrases(rawPhrasesArray, isP = false) {
+        const extractedCodes = new Map();
+        const fallbackTexts = [];
 
-    unique.sort((a, b) => {
-        const codeA = typeof a === 'object' ? a.code : (a.match(/H\d{3}/)||[''])[0];
-        const codeB = typeof b === 'object' ? b.code : (b.match(/H\d{3}/)||[''])[0];
-        return getHPriority(codeA) - getHPriority(codeB);
-    });
+        rawPhrasesArray.forEach(rawStr => {
+            // Encontra códigos simples (P264) ou combinações (P301+P317 ou P305 + P351)
+            const codesMatches = rawStr.match(/[HP]\d{3}(?:\s*\+\s*[HP]\d{3})*/g);
+            if (codesMatches) {
+                codesMatches.forEach(c => {
+                    const code = c.replace(/\s+/g, '');
+                    if (!extractedCodes.has(code)) {
+                        extractedCodes.set(code, rawStr.replace(/\[.*?\]/g, '').trim());
+                    }
+                });
+            } else {
+                const clean = rawStr.replace(/\[.*?\]/g, '').trim();
+                if (clean.length > 5) fallbackTexts.push(clean);
+            }
+        });
 
-    return unique.slice(0, maxCount);
-}
-
-function processPhrases(rawPhrasesArray, isP = false) {
-    const extractedCodes = new Map();
-    const fallbackTexts = [];
-    
-    rawPhrasesArray.forEach(rawStr => {
-        // Encontra códigos simples (P264) ou combinações (P301+P317 ou P305 + P351)
-        const codesMatches = rawStr.match(/[HP]\d{3}(?:\s*\+\s*[HP]\d{3})*/g);
-        if (codesMatches) {
-            codesMatches.forEach(c => {
-                const code = c.replace(/\s+/g, '');
-                if (!extractedCodes.has(code)) {
-                    extractedCodes.set(code, rawStr.replace(/\[.*?\]/g, '').trim());
+        let processed = [];
+        extractedCodes.forEach((rawString, code) => {
+            let translation = dictPhrases[code];
+            if (translation) {
+                // Se a tradução terminar com ":" (como "P301: EM CASO DE INGESTÃO:"), e a string original tiver mais conteúdo, preservamos o complemento
+                if (translation.trim().endsWith(':')) {
+                    let parts = rawString.split(':');
+                    if (parts.length > 1) {
+                        translation = translation + " " + parts.slice(1).join(':').trim();
+                    } else {
+                        translation = translation + " " + rawString.replace(code, '').trim();
+                    }
                 }
-            });
-        } else {
-            const clean = rawStr.replace(/\[.*?\]/g, '').trim(); 
-            if(clean.length > 5) fallbackTexts.push(clean);
-        }
-    });
+                processed.push(translation);
+            } else {
+                processed.push(rawString);
+            }
+        });
 
-    let processed = [];
-    extractedCodes.forEach((rawString, code) => {
-        let translation = dictPhrases[code];
-        if (translation) {
-            // Se a tradução terminar com ":" (como "P301: EM CASO DE INGESTÃO:"), e a string original tiver mais conteúdo, preservamos o complemento
-            if (translation.trim().endsWith(':')) {
-                let parts = rawString.split(':');
-                if (parts.length > 1) {
-                    translation = translation + " " + parts.slice(1).join(':').trim();
-                } else {
-                    translation = translation + " " + rawString.replace(code, '').trim();
+        if (processed.length === 0) processed = fallbackTexts;
+
+        const uniqueMap = new Map();
+        processed.forEach(phrase => {
+            const lower = phrase.toLowerCase();
+            let shouldAdd = true;
+            for (let [existingLower, existingOrig] of uniqueMap.entries()) {
+                if (existingLower.includes(lower)) {
+                    shouldAdd = false;
+                    break;
+                } else if (lower.includes(existingLower)) {
+                    uniqueMap.delete(existingLower);
+                    break;
                 }
             }
-            processed.push(translation);
-        } else {
-            processed.push(rawString); 
-        }
-    });
-    
-    if (processed.length === 0) processed = fallbackTexts;
+            if (shouldAdd) uniqueMap.set(lower, phrase);
+        });
 
-    const uniqueMap = new Map();
-    processed.forEach(phrase => {
-        const lower = phrase.toLowerCase();
-        let shouldAdd = true;
-        for (let [existingLower, existingOrig] of uniqueMap.entries()) {
-            if (existingLower.includes(lower)) {
-                shouldAdd = false;
-                break;
-            } else if (lower.includes(existingLower)) {
-                uniqueMap.delete(existingLower);
-                break;
+        let finalArray = Array.from(uniqueMap.values());
+
+        // Função de peso de importância (menor = mais importante)
+        function getImportance(str) {
+            let match = str.match(/[HP](\d{3})/);
+            if (!match) return 999;
+            let num = parseInt(match[1]);
+            let type = str.charAt(0);
+
+            // Regras específicas de prioridade
+            if (type === 'P') {
+                if (num === 501 || num === 502) return 10; // Descarte é crucial para resíduos
+                if (num === 280 || num === 282 || num === 284) return 20; // EPIs são essenciais
+                if (num >= 300 && num < 400) return 30 + num; // Primeiros socorros
+                if (num >= 200 && num < 300) return 400 + num; // Prevenção
+                if (num >= 400 && num < 500) return 500 + num; // Armazenamento
+            } else if (type === 'H') {
+                // Para frases H, numeração menor geralmente é mais grave no mesmo grupo (H300 > H302)
+                // Mas físicos (200), saúde (300), meio ambiente (400)
+                if (num >= 300 && num < 400) return 100 + num; // Saúde prioridade 1
+                if (num >= 200 && num < 300) return 200 + num; // Físicos prioridade 2
+                if (num >= 400) return 300 + num; // Meio ambiente prioridade 3
             }
+            return num;
         }
-        if (shouldAdd) uniqueMap.set(lower, phrase);
-    });
 
-    let finalArray = Array.from(uniqueMap.values());
-    
-    // Função de peso de importância (menor = mais importante)
-    function getImportance(str) {
-        let match = str.match(/[HP](\d{3})/);
-        if (!match) return 999;
-        let num = parseInt(match[1]);
-        let type = str.charAt(0);
-        
-        // Regras específicas de prioridade
-        if (type === 'P') {
-            if (num === 501 || num === 502) return 10; // Descarte é crucial para resíduos
-            if (num === 280 || num === 282 || num === 284) return 20; // EPIs são essenciais
-            if (num >= 300 && num < 400) return 30 + num; // Primeiros socorros
-            if (num >= 200 && num < 300) return 400 + num; // Prevenção
-            if (num >= 400 && num < 500) return 500 + num; // Armazenamento
-        } else if (type === 'H') {
-            // Para frases H, numeração menor geralmente é mais grave no mesmo grupo (H300 > H302)
-            // Mas físicos (200), saúde (300), meio ambiente (400)
-            if (num >= 300 && num < 400) return 100 + num; // Saúde prioridade 1
-            if (num >= 200 && num < 300) return 200 + num; // Físicos prioridade 2
-            if (num >= 400) return 300 + num; // Meio ambiente prioridade 3
+        finalArray.sort((a, b) => getImportance(a) - getImportance(b));
+
+        if (isP && finalArray.length > 6) {
+            finalArray = finalArray.slice(0, 6);
         }
-        return num;
+
+        return finalArray.length > 0 ? finalArray : ["Nenhuma frase encontrada"];
     }
 
-    finalArray.sort((a, b) => getImportance(a) - getImportance(b));
-
-    if (isP && finalArray.length > 6) {
-        finalArray = finalArray.slice(0, 6);
-    }
-    
-    return finalArray.length > 0 ? finalArray : ["Nenhuma frase encontrada"];
-}
-
-async function searchPubChem(query) {
+    async function searchPubChem(query) {
         try {
             const cidRes = await fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${query}/cids/JSON`);
             if (!cidRes.ok) return null;
@@ -749,64 +749,64 @@ async function searchPubChem(query) {
                     if (ghsSection && ghsSection.Information) {
                         for (const item of ghsSection.Information) {
                             if (item.Name && item.Name.toLowerCase().includes('pictogram')) {
-                                if(item.Value.StringWithMarkup) {
+                                if (item.Value.StringWithMarkup) {
                                     const dictGhs = {
-                                                "ghs01": "ghs01_explosivo", "exploding bomb": "ghs01_explosivo",
-                                                "ghs02": "ghs02_inflamavel", "flame": "ghs02_inflamavel",
-                                                "ghs03": "ghs03_oxidante", "flame over circle": "ghs03_oxidante",
-                                                "ghs04": "ghs04_gas", "gas cylinder": "ghs04_gas",
-                                                "ghs05": "ghs05_corrosivo", "corrosion": "ghs05_corrosivo",
-                                                "ghs06": "ghs06_toxico", "skull and crossbones": "ghs06_toxico",
-                                                "ghs07": "ghs07_irritante", "exclamation mark": "ghs07_irritante",
-                                                "ghs08": "ghs08_saude", "health hazard": "ghs08_saude",
-                                                "ghs09": "ghs09_meioambiente", "environment": "ghs09_meioambiente"
-                                            };
-                                            item.Value.StringWithMarkup.forEach(p => {
-                                                if (p.Markup) {
-                                                    p.Markup.forEach(m => {
-                                                        if (m.URL) {
-                                                            const matchUrl = m.URL.toLowerCase().match(/ghs\d{2}/);
-                                                            if (matchUrl && dictGhs[matchUrl[0]]) {
-                                                                pictograms.add(dictGhs[matchUrl[0]]);
-                                                            }
-                                                        }
-                                                        if (m.Extra) {
-                                                            const extraStr = m.Extra.toLowerCase();
-                                                            for (let key in dictGhs) {
-                                                                if (extraStr.includes(key)) pictograms.add(dictGhs[key]);
-                                                            }
-                                                        }
-                                                    });
+                                        "ghs01": "ghs01_explosivo", "exploding bomb": "ghs01_explosivo",
+                                        "ghs02": "ghs02_inflamavel", "flame": "ghs02_inflamavel",
+                                        "ghs03": "ghs03_oxidante", "flame over circle": "ghs03_oxidante",
+                                        "ghs04": "ghs04_gas", "gas cylinder": "ghs04_gas",
+                                        "ghs05": "ghs05_corrosivo", "corrosion": "ghs05_corrosivo",
+                                        "ghs06": "ghs06_toxico", "skull and crossbones": "ghs06_toxico",
+                                        "ghs07": "ghs07_irritante", "exclamation mark": "ghs07_irritante",
+                                        "ghs08": "ghs08_saude", "health hazard": "ghs08_saude",
+                                        "ghs09": "ghs09_meioambiente", "environment": "ghs09_meioambiente"
+                                    };
+                                    item.Value.StringWithMarkup.forEach(p => {
+                                        if (p.Markup) {
+                                            p.Markup.forEach(m => {
+                                                if (m.URL) {
+                                                    const matchUrl = m.URL.toLowerCase().match(/ghs\d{2}/);
+                                                    if (matchUrl && dictGhs[matchUrl[0]]) {
+                                                        pictograms.add(dictGhs[matchUrl[0]]);
+                                                    }
+                                                }
+                                                if (m.Extra) {
+                                                    const extraStr = m.Extra.toLowerCase();
+                                                    for (let key in dictGhs) {
+                                                        if (extraStr.includes(key)) pictograms.add(dictGhs[key]);
+                                                    }
                                                 }
                                             });
                                         }
-                                    }
-                                    if (item.Name && item.Name.includes('Signal')) {
-                                        if(item.Value.StringWithMarkup && item.Value.StringWithMarkup[0].String.toUpperCase() === 'DANGER') {
-                                            warningWord = "PERIGO";
-                                        }
-                                    }
-                                    if (item.Name && item.Name.includes('GHS Hazard Statements')) {
-                                        if (item.Value.StringWithMarkup) {
-                                            item.Value.StringWithMarkup.forEach(h => hazardsH.push(h.String));
-                                        }
-                                    }
-                                    if (item.Name && item.Name.includes('Precautionary Statement Codes')) {
-                                         if (item.Value.StringWithMarkup) {
-                                            item.Value.StringWithMarkup.forEach(p => hazardsP.push(p.String));
-                                        }
-                                    }
+                                    });
+                                }
+                            }
+                            if (item.Name && item.Name.includes('Signal')) {
+                                if (item.Value.StringWithMarkup && item.Value.StringWithMarkup[0].String.toUpperCase() === 'DANGER') {
+                                    warningWord = "PERIGO";
+                                }
+                            }
+                            if (item.Name && item.Name.includes('GHS Hazard Statements')) {
+                                if (item.Value.StringWithMarkup) {
+                                    item.Value.StringWithMarkup.forEach(h => hazardsH.push(h.String));
+                                }
+                            }
+                            if (item.Name && item.Name.includes('Precautionary Statement Codes')) {
+                                if (item.Value.StringWithMarkup) {
+                                    item.Value.StringWithMarkup.forEach(p => hazardsP.push(p.String));
+                                }
                             }
                         }
+                    }
                 } catch (e) { console.error("GHS parse error", e); }
             }
 
             const nameLower = query.toLowerCase() + " " + (props.IUPACName || '').toLowerCase();
-            const isStrongAcid = nameLower.includes('sulfuric') || nameLower.includes('sulfúrico') || 
-                                 nameLower.includes('nitric') || nameLower.includes('nítrico') || 
-                                 nameLower.includes('hydrochloric') || nameLower.includes('clorídrico') || 
-                                 nameLower.includes('hydrofluoric') || nameLower.includes('fluorídrico');
-            
+            const isStrongAcid = nameLower.includes('sulfuric') || nameLower.includes('sulfúrico') ||
+                nameLower.includes('nitric') || nameLower.includes('nítrico') ||
+                nameLower.includes('hydrochloric') || nameLower.includes('clorídrico') ||
+                nameLower.includes('hydrofluoric') || nameLower.includes('fluorídrico');
+
             if (isStrongAcid) {
                 if (!hazardsH.find(h => h.includes('H331'))) hazardsH.push("H331: Tóxico se inalado.");
                 if (!hazardsH.find(h => h.includes('H290'))) hazardsH.push("H290: Pode ser corrosivo para os metais.");
@@ -820,7 +820,7 @@ async function searchPubChem(query) {
             if (pictograms.has("ghs09_meioambiente")) classesArr.push("9 (Ambiental)");
 
             let inferredRiskClass = classesArr.length > 0 ? classesArr.join(" + ") : "A definir";
-            
+
             let inferredUN = "A definir";
             let cStr = classesArr.join(",");
             if (cStr.includes("3") && cStr.includes("6.1") && cStr.includes("8")) inferredUN = "3286";
@@ -849,7 +849,7 @@ async function searchPubChem(query) {
                 P_Phrases: finalP,
                 Pictograms_List: Array.from(pictograms)
             };
-            
+
             sincronizarComNuvem(novoProduto);
             return novoProduto;
         } catch (e) {
@@ -862,7 +862,7 @@ async function searchPubChem(query) {
     function sincronizarComNuvem(produto) {
         console.log("☁️ [SYNC CLOUD] Enviando novo produto para o Supabase:", produto.Common_Name);
         saveChemicalToCloud(produto);
-        
+
         // Salvamento local temporário (cache na sessão atual)
         db.push(produto);
     }
@@ -880,11 +880,11 @@ async function searchPubChem(query) {
         }
 
         // Primeiro procura no banco interno unificado (db hardcoded + meu banco)
-        let filtered = db.filter(p => 
-            p.Common_Name.toLowerCase().includes(queryNorm) || 
+        let filtered = db.filter(p =>
+            p.Common_Name.toLowerCase().includes(queryNorm) ||
             (p.CAS_Number && p.CAS_Number.includes(queryNorm))
         ).slice(0, 5); // Limit to 5 local matches
-        
+
         let myFiltered = myProductsCache.filter(p => p.nome.toLowerCase().includes(queryNorm)).map(p => {
             let pObj = {
                 Common_Name: p.nome,
@@ -896,13 +896,13 @@ async function searchPubChem(query) {
                         const obs = JSON.parse(p.observacoes || '{}');
                         const hasMultiple = obs.mixtureData && Array.isArray(obs.mixtureData) && obs.mixtureData.length > 1;
                         return hasMultiple ? 'Meu Banco (Mistura)' : 'Meu Banco';
-                    } catch(e) { return 'Meu Banco'; }
+                    } catch (e) { return 'Meu Banco'; }
                 })(),
                 isMyProduct: true,
                 meuProdutoData: p,
                 Pictograms_List: p.ghs_classes || []
             };
-            if(p.observacoes) {
+            if (p.observacoes) {
                 try {
                     const parsedData = JSON.parse(p.observacoes);
                     if (p.tipo === 'mistura') {
@@ -913,7 +913,7 @@ async function searchPubChem(query) {
                             pObj.mixtureData = parsedData.mixtureData;
                         }
                     }
-                }catch(e){}
+                } catch (e) { }
             }
             return pObj;
         });
@@ -935,7 +935,7 @@ async function searchPubChem(query) {
             } else {
                 searchResults.innerHTML = '<div class="result-item loading-online" style="color: #666;"><i class="fas fa-spinner fa-spin"></i> Buscando correspondência exata...</div>';
             }
-            
+
             // 1. Tenta busca exata no PubChem (que já possui muitos sinônimos em Português)
             let onlineResult = await searchPubChem(query);
             let searchWord = queryNorm;
@@ -943,7 +943,7 @@ async function searchPubChem(query) {
             // 2. Se falhar, tenta traduzir e buscar exato
             if (!onlineResult) {
                 const loader = searchResults.querySelector('.loading-online');
-                if(loader) loader.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traduzindo termo para busca internacional...';
+                if (loader) loader.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traduzindo termo para busca internacional...';
                 try {
                     const trRes = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=en&dt=t&q=${encodeURIComponent(query)}`);
                     if (trRes.ok) {
@@ -953,11 +953,11 @@ async function searchPubChem(query) {
                             onlineResult = await searchPubChem(searchWord);
                         }
                     }
-                } catch(e) { console.warn("Erro ao traduzir busca", e); }
+                } catch (e) { console.warn("Erro ao traduzir busca", e); }
             }
 
             const loader = searchResults.querySelector('.loading-online');
-            if(loader) loader.remove();
+            if (loader) loader.remove();
 
             if (onlineResult) {
                 onlineResult.Common_Name_PT = query.toUpperCase();
@@ -1004,8 +1004,8 @@ async function searchPubChem(query) {
                         return; // Wait for user click
                     }
                 }
-            } catch(e) { console.error("Autocomplete error", e); }
-            
+            } catch (e) { console.error("Autocomplete error", e); }
+
             if (combined.length === 0) {
                 searchResults.innerHTML = '<div class="result-item" style="color: #E3000F;">Nenhum resultado encontrado (Local ou PubChem).</div>';
             }
@@ -1023,38 +1023,38 @@ async function searchPubChem(query) {
             }
             div.innerHTML = `<strong>${p.Common_Name}</strong> <small>(${p.CAS_Number || ''})</small> ${badge}`;
             div.addEventListener('click', () => {
-                if(p.isMixture && p.mixtureData) {
-                    currentMixture = p.mixtureData.map(item => ({...item, id: Date.now() + Math.random()}));
+                if (p.isMixture && p.mixtureData) {
+                    currentMixture = p.mixtureData.map(item => ({ ...item, id: Date.now() + Math.random() }));
                     updateMixtureDisplay();
                 } else {
                     selectProduct(p);
                 }
 
                 // Restaurar edições personalizadas (Nome, UN, Estado, Incompatibilidade e Pictogramas)
-                if(p.isMyProduct) {
+                if (p.isMyProduct) {
                     currentMyProductId = p.meuProdutoData.id_supabase;
                     const delBtn = document.getElementById('deletePersonalDbBtn');
-                    if(delBtn) delBtn.classList.remove('hidden');
+                    if (delBtn) delBtn.classList.remove('hidden');
 
                     setTimeout(() => {
                         const data = p.meuProdutoData;
-                        if(data.nome) document.getElementById('pdNome').textContent = data.nome;
-                        if(data.onu_number) document.getElementById('pdOnu').textContent = (data.onu_number.toUpperCase().startsWith('UN') ? '' : 'UN: ') + data.onu_number;
-                        if(data.estado_fisico && document.getElementById('pdEstado')) document.getElementById('pdEstado').value = data.estado_fisico;
-                        if(data.incompatibilidade && document.getElementById('pdIncompatibilidade')) document.getElementById('pdIncompatibilidade').value = data.incompatibilidade;
-                        
+                        if (data.nome) document.getElementById('pdNome').textContent = data.nome;
+                        if (data.onu_number) document.getElementById('pdOnu').textContent = (data.onu_number.toUpperCase().startsWith('UN') ? '' : 'UN: ') + data.onu_number;
+                        if (data.estado_fisico && document.getElementById('pdEstado')) document.getElementById('pdEstado').value = data.estado_fisico;
+                        if (data.incompatibilidade && document.getElementById('pdIncompatibilidade')) document.getElementById('pdIncompatibilidade').value = data.incompatibilidade;
+
                         // Restaurar Pictogramas
-                        if(data.ghs_classes && Array.isArray(data.ghs_classes)) {
+                        if (data.ghs_classes && Array.isArray(data.ghs_classes)) {
                             selectedPictograms.clear();
                             data.ghs_classes.forEach(cls => selectedPictograms.add(cls));
-                            
+
                             // Re-renderizar UI dos pictogramas
                             const picContainer = document.getElementById('pdPictogramas');
                             if (picContainer) {
                                 picContainer.querySelectorAll('.picto-item').forEach(item => {
                                     const title = item.title;
                                     const ghsObj = allGhs.find(g => g.label === title);
-                                    if(ghsObj && data.ghs_classes.includes(ghsObj.id)) {
+                                    if (ghsObj && data.ghs_classes.includes(ghsObj.id)) {
                                         item.classList.add('active');
                                     } else {
                                         item.classList.remove('active');
@@ -1074,12 +1074,12 @@ async function searchPubChem(query) {
                                     document.getElementById('pdFrasesP').innerHTML = parsedObs.frases_p.map(f => `<li>${f}</li>`).join('');
                                 }
                             }
-                        } catch(e) {}
+                        } catch (e) { }
                     }, 50); // Timeout para rodar logo após o updateMixtureDisplay
                 } else {
                     currentMyProductId = null;
                     const delBtn = document.getElementById('deletePersonalDbBtn');
-                    if(delBtn) delBtn.classList.add('hidden');
+                    if (delBtn) delBtn.classList.add('hidden');
                 }
 
                 searchInput.value = '';
@@ -1123,11 +1123,11 @@ async function searchPubChem(query) {
             fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(produto.Common_Name)}&langpair=en|pt`)
                 .then(res => res.json())
                 .then(data => {
-                    if(data && data.responseData && data.responseData.translatedText) {
+                    if (data && data.responseData && data.responseData.translatedText) {
                         const translated = data.responseData.translatedText;
                         // Atualiza no array
                         const itemToUpdate = currentMixture.find(m => m.id === newItem.id);
-                        if(itemToUpdate) {
+                        if (itemToUpdate) {
                             itemToUpdate.produto.Common_Name_PT = translated;
                             updateMixtureDisplay();
                         }
@@ -1137,33 +1137,33 @@ async function searchPubChem(query) {
         }
     }
 
-    window.removeResiduo = function(id) {
+    window.removeResiduo = function (id) {
         currentMixture = currentMixture.filter(m => m.id !== id);
         updateMixtureDisplay();
     };
 
-    window.updatePercentage = function(id, value) {
+    window.updatePercentage = function (id, value) {
         const item = currentMixture.find(m => m.id === id);
         if (item) {
             let newVal = parseFloat(value) || 0;
             if (newVal < 0) newVal = 0;
-            
+
             let sumOthers = 0;
             currentMixture.forEach(m => {
                 if (m.id !== id) sumOthers += m.percentage;
             });
-            
+
             if (sumOthers + newVal > 100) {
                 newVal = 100 - sumOthers;
                 alert(`A soma das concentrações não pode ultrapassar 100%. Valor ajustado para ${newVal}%.`);
             }
-            
+
             item.percentage = newVal;
             updateMixtureDisplay();
         }
     };
 
-    window.updateNamePT = function(id, value) {
+    window.updateNamePT = function (id, value) {
         const item = currentMixture.find(m => m.id === id);
         if (item) {
             item.produto.Common_Name_PT = value;
@@ -1187,7 +1187,7 @@ async function searchPubChem(query) {
             saveMixtureBtn.style.opacity = '0.5';
             saveMixtureBtn.style.cursor = 'not-allowed';
         }
-        
+
         // Limpar visualmente a etiqueta para forçar reclassificação
         document.getElementById('pdOnu').textContent = "Pendente de Classificação...";
         document.getElementById('pdClasse').textContent = "Pendente...";
@@ -1195,14 +1195,14 @@ async function searchPubChem(query) {
         document.getElementById('pdFrasesH').innerHTML = '';
         document.getElementById('pdFrasesP').innerHTML = '';
         selectedPictograms.clear();
-        
+
         const picContainer = document.getElementById('pdPictogramas');
         if (picContainer) {
             picContainer.querySelectorAll('.picto-item').forEach(item => {
                 item.classList.remove('active');
             });
         }
-        
+
         const alertBanner = document.getElementById('pdSafetyAlert');
         if (alertBanner) alertBanner.style.display = 'none';
 
@@ -1217,7 +1217,7 @@ async function searchPubChem(query) {
             div.style.padding = '0.5rem';
             div.style.borderRadius = '6px';
             div.style.border = '1px solid var(--border)';
-            
+
             div.innerHTML = `
                 <div style="flex: 1; display: flex; flex-direction: column; gap: 0.2rem;">
                     <input type="text" onchange="updateNamePT(${m.id}, this.value)" value="${m.produto.Common_Name_PT || m.produto.Common_Name}" style="background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); padding: 0.4rem; border-radius: 4px; font-weight: bold; width: 100%; font-size: 0.9rem;" title="Nome do Produto (Deve ser em Português)">
@@ -1239,17 +1239,17 @@ async function searchPubChem(query) {
     function calculateUnifiedLabel() {
         let isPureForUN = currentMixture.length === 1 || currentMixture.some(m => parseFloat(m.percentage) >= 90);
         let pureComponent = currentMixture.find(m => parseFloat(m.percentage) >= 90) || currentMixture[0];
-        
+
         const formatName = name => (name || "").toUpperCase();
 
         let isSingle = currentMixture.length === 1;
         let unifiedName = isSingle ? formatName(currentMixture[0].produto.Common_Name_PT || currentMixture[0].produto.Common_Name) : "MISTURA: " + currentMixture.map(m => formatName(m.produto.Common_Name_PT || m.produto.Common_Name)).join(" + ");
         let unifiedComp = "COMPOSIÇÃO: " + currentMixture.map(m => `${formatName(m.produto.Common_Name_PT || m.produto.Common_Name)} (CAS: ${m.produto.CAS_Number || 'N/A'})`).join(" / ");
-        
+
         let unifiedOnu = "N/A";
         let unifiedClass = "N/A";
         let names = currentMixture.map(m => formatName(m.produto.Common_Name_PT || m.produto.Common_Name)).join(", ");
-        
+
         if (isSingle) {
             unifiedOnu = currentMixture[0].produto.UN_Number || "N/A";
             unifiedClass = currentMixture[0].produto.Risk_Class || "N/A";
@@ -1260,7 +1260,7 @@ async function searchPubChem(query) {
             currentMixture.forEach(m => {
                 const cls = m.produto.Risk_Class || "";
                 const pictos = m.produto.Pictograms_List || [];
-                
+
                 if (cls.includes("1") && !cls.includes("6.1")) classesObj[1] = true;
                 if (cls.includes("5.2")) classesObj[5.2] = true;
                 if (cls.includes("7")) classesObj[7] = true;
@@ -1276,13 +1276,13 @@ async function searchPubChem(query) {
                 if (cls.includes("2")) classesObj[2] = true;
                 if (cls.includes("9")) classesObj[9] = true;
             });
-            
+
             let isGasMixture = currentMixture.every(m => {
                 const cls = m.produto.Risk_Class || "";
                 const nameLower = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
-                const isGasName = nameLower.includes("oxigênio") || nameLower.includes("oxigenio") || 
-                                  nameLower.includes("carbono") || nameLower.includes("nitrogênio") || 
-                                  nameLower.includes("nitrogenio") || nameLower.includes("gás") || nameLower.includes("gas");
+                const isGasName = nameLower.includes("oxigênio") || nameLower.includes("oxigenio") ||
+                    nameLower.includes("carbono") || nameLower.includes("nitrogênio") ||
+                    nameLower.includes("nitrogenio") || nameLower.includes("gás") || nameLower.includes("gas");
                 return cls.startsWith("2") || isGasName;
             });
 
@@ -1338,7 +1338,7 @@ async function searchPubChem(query) {
                 unifiedClass = "Mistura Multirrisco";
             }
         }
-        
+
         let hasDanger = currentMixture.some(m => (m.produto.Warning_Word || "").toUpperCase() === "PERIGO");
         let unifiedAdvertencia = hasDanger ? "PERIGO" : "ATENÇÃO";
 
@@ -1352,7 +1352,7 @@ async function searchPubChem(query) {
         currentMixture.forEach(m => {
             const p = m.produto;
             const perc = m.percentage;
-            
+
             if (p.Pictograms_List) p.Pictograms_List.forEach(id => selectedPictograms.add(id));
             if (p.H_Phrases) allH = allH.concat(p.H_Phrases);
             if (p.P_Phrases) allP = allP.concat(p.P_Phrases);
@@ -1390,7 +1390,7 @@ async function searchPubChem(query) {
             hasDanger = true;
             unifiedAdvertencia = "PERIGO";
         }
-        
+
         let hasClass6 = currentMixture.some(m => {
             const cls = m.produto.Risk_Class || "";
             return cls.includes("6.1") || cls.includes("6");
@@ -1411,11 +1411,11 @@ async function searchPubChem(query) {
         let isGasMixtureFinal = currentMixture.every(m => {
             const cls = m.produto.Risk_Class || "";
             const nameLower = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
-            return cls.startsWith("2") || nameLower.includes("oxigênio") || nameLower.includes("oxigenio") || 
-                   nameLower.includes("carbono") || nameLower.includes("nitrogênio") || nameLower.includes("nitrogenio") || 
-                   nameLower.includes("gás") || nameLower.includes("gas");
+            return cls.startsWith("2") || nameLower.includes("oxigênio") || nameLower.includes("oxigenio") ||
+                nameLower.includes("carbono") || nameLower.includes("nitrogênio") || nameLower.includes("nitrogenio") ||
+                nameLower.includes("gás") || nameLower.includes("gas");
         });
-        
+
         if (isGasMixtureFinal) {
             let hasRealToxic = currentMixture.some(m => {
                 const name = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
@@ -1429,9 +1429,9 @@ async function searchPubChem(query) {
                 hasDanger = false;
                 unifiedAdvertencia = "ATENÇÃO";
             }
-            
+
             selectedPictograms.add('ghs04_gas');
-            
+
             let oxygenComponent = currentMixture.find(m => {
                 const name = (m.produto.Common_Name_PT || m.produto.Common_Name || "").toLowerCase();
                 return name.includes("oxigênio") || name.includes("oxigenio") || name === "o2";
@@ -1452,10 +1452,10 @@ async function searchPubChem(query) {
         allGhs.forEach(ghs => {
             const div = document.createElement('div');
             div.className = `picto-item ${selectedPictograms.has(ghs.id) ? 'active' : ''}`;
-            
+
             div.innerHTML = `<img src="${ghs.img}" alt="${ghs.label}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdib3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgYWxpZ25tZW50LWJhc2VsaW5lPSJtaWRkbGUiPklNQUdFTTwvdGV4dD48L3N2Zz4='">`;
             div.title = ghs.label;
-            
+
             div.addEventListener('click', () => {
                 if (selectedPictograms.has(ghs.id)) {
                     selectedPictograms.delete(ghs.id);
@@ -1578,14 +1578,14 @@ async function searchPubChem(query) {
             const alertBanner = document.getElementById('pdSafetyAlert');
             const alertText = document.getElementById('pdSafetyAlertText');
             const printBtn = document.getElementById('printBtn');
-            
+
             if (alertBanner && alertText && result.safety_alert) {
                 const hasCritical = (result.safety_alert.includes('[CRITICAL]') || result.safety_alert.includes('[FATAL]')) || (result.details && result.details.incompatibilities && result.details.incompatibilities.some(i => i.severity === 'CRITICAL' || i.severity === 'FATAL'));
-                
+
                 if (result.safety_alert.includes('[CRITICAL]') || result.safety_alert.includes('[FATAL]') || result.safety_alert.includes('[WARNING]')) {
                     alertText.textContent = result.safety_alert;
                     alertBanner.style.display = 'block';
-                    
+
                     if (hasCritical) {
                         alertBanner.style.backgroundColor = '#fee2e2';
                         alertBanner.style.color = '#dc2626';
@@ -1630,7 +1630,7 @@ async function searchPubChem(query) {
     document.getElementById('printBtn').addEventListener('click', () => {
         if (currentMixture.length === 0) return;
         saveLabelHistory();
-        
+
         const empresa = document.getElementById('geradorEmpresa') ? document.getElementById('geradorEmpresa').value : '-';
         const endereco = document.getElementById('geradorEndereco') ? document.getElementById('geradorEndereco').value : '-';
         const resp = document.getElementById('geradorResp') ? document.getElementById('geradorResp').value : '-';
@@ -1645,10 +1645,10 @@ async function searchPubChem(query) {
 
         let labelWidth = "150mm";
         let labelHeight = "100mm";
-        if(configVol === "A") { labelWidth = "74mm"; labelHeight = "52mm"; }
-        else if(configVol === "B") { labelWidth = "105mm"; labelHeight = "74mm"; }
-        else if(configVol === "C") { labelWidth = "148mm"; labelHeight = "105mm"; }
-        else if(configVol === "D") { labelWidth = "210mm"; labelHeight = "148mm"; }
+        if (configVol === "A") { labelWidth = "74mm"; labelHeight = "52mm"; }
+        else if (configVol === "B") { labelWidth = "105mm"; labelHeight = "74mm"; }
+        else if (configVol === "C") { labelWidth = "148mm"; labelHeight = "105mm"; }
+        else if (configVol === "D") { labelWidth = "210mm"; labelHeight = "148mm"; }
 
         const dynamicCSS = `
             @media print {
@@ -1697,7 +1697,7 @@ async function searchPubChem(query) {
         const unifiedAdv = document.getElementById('pdAdvertencia').textContent;
         const unifiedOnu = document.getElementById('pdOnu') ? document.getElementById('pdOnu').textContent : '';
         const unifiedClass = document.getElementById('pdClasse') ? document.getElementById('pdClasse').textContent : '';
-        
+
         const hLisNodes = Array.from(document.getElementById('pdFrasesH').children);
         const pLisNodes = Array.from(document.getElementById('pdFrasesP').children);
 
@@ -1821,7 +1821,7 @@ async function searchPubChem(query) {
         else deleteSelectedBtn.classList.add('hidden');
     }
 
-    if(selectAllReports) {
+    if (selectAllReports) {
         selectAllReports.addEventListener('change', (e) => {
             document.querySelectorAll('.report-checkbox').forEach(cb => {
                 cb.checked = e.target.checked;
@@ -1830,11 +1830,11 @@ async function searchPubChem(query) {
         });
     }
 
-    if(deleteSelectedBtn) {
+    if (deleteSelectedBtn) {
         deleteSelectedBtn.addEventListener('click', async () => {
             const checkedBoxes = Array.from(document.querySelectorAll('.report-checkbox:checked'));
             const idsToDelete = checkedBoxes.map(cb => cb.value);
-            
+
             if (idsToDelete.length === 0) return;
             if (!confirm(`Tem certeza que deseja apagar ${idsToDelete.length} registro(s)? Essa ação não pode ser desfeita.`)) return;
 
@@ -1849,14 +1849,14 @@ async function searchPubChem(query) {
                     .select();
 
                 if (error) throw error;
-                
+
                 if (data && data.length === 0) {
                     alert("Atenção: A exclusão foi bloqueada pelo banco de dados. \n\nIsso ocorre porque a tabela 'historico_descartes' no seu Supabase precisa de uma política de segurança (RLS - Row Level Security) permitindo a operação 'DELETE' para usuários autenticados. Por favor, adicione essa política no painel do Supabase para ativar a exclusão.");
                 }
 
                 // Recarregar relatórios
-                if(reportsBtn) reportsBtn.click();
-            } catch(err) {
+                if (reportsBtn) reportsBtn.click();
+            } catch (err) {
                 alert("Erro ao apagar registros: " + err.message);
             } finally {
                 deleteSelectedBtn.textContent = '🗑 Excluir';
@@ -1865,13 +1865,13 @@ async function searchPubChem(query) {
         });
     }
 
-    if(reportsBtn) {
+    if (reportsBtn) {
         reportsBtn.addEventListener('click', async () => {
             dashboardModal.classList.remove('hidden');
             reportsTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Carregando dados da nuvem...</td></tr>';
-            if(selectAllReports) selectAllReports.checked = false;
-            if(deleteSelectedBtn) deleteSelectedBtn.classList.add('hidden');
-            
+            if (selectAllReports) selectAllReports.checked = false;
+            if (deleteSelectedBtn) deleteSelectedBtn.classList.add('hidden');
+
             try {
                 const { data, error } = await supabaseClient
                     .from('historico_descartes')
@@ -1901,10 +1901,10 @@ async function searchPubChem(query) {
                         <td>${item.empresa || '-'}</td>
                         <td style="color: var(--text-secondary); font-size: 0.8rem;">${dataImpressao}</td>
                     `;
-                    
+
                     const cb = row.querySelector('.report-checkbox');
                     cb.addEventListener('change', updateDeleteBtnVisibility);
-                    
+
                     reportsTableBody.appendChild(row);
                 });
             } catch (err) {
@@ -1913,7 +1913,7 @@ async function searchPubChem(query) {
         });
     }
 
-    if(closeReportsBtn) {
+    if (closeReportsBtn) {
         closeReportsBtn.addEventListener('click', () => {
             dashboardModal.classList.add('hidden');
         });
@@ -1927,7 +1927,7 @@ async function searchPubChem(query) {
     const closeSavedMixturesBtn = document.getElementById('closeSavedMixturesBtn');
     const savedMixturesList = document.getElementById('savedMixturesList');
 
-    
+
     // --- Receitas Salvas (localStorage — completamente independente do Supabase) ---
     function getSavedMixtures() {
         return _loadRecipesFromStorage();
@@ -1940,21 +1940,21 @@ async function searchPubChem(query) {
     }
 
 
-    
+
     const deletePersonalDbBtn = document.getElementById('deletePersonalDbBtn');
-    if(deletePersonalDbBtn) {
+    if (deletePersonalDbBtn) {
         deletePersonalDbBtn.addEventListener('click', async () => {
-            if(!currentMyProductId || !currentUser || !supabaseClient) return;
-            if(!confirm("Tem certeza que deseja apagar este item do seu banco de dados?")) return;
-            
+            if (!currentMyProductId || !currentUser || !supabaseClient) return;
+            if (!confirm("Tem certeza que deseja apagar este item do seu banco de dados?")) return;
+
             const originalText = deletePersonalDbBtn.innerHTML;
             deletePersonalDbBtn.textContent = "Excluindo...";
-            
+
             const { data, error } = await supabaseClient.from('meus_produtos').delete().eq('id', currentMyProductId).select();
-            
+
             deletePersonalDbBtn.innerHTML = originalText;
-            
-            if(error) {
+
+            if (error) {
                 alert("Erro ao excluir: " + error.message);
             } else if (data && data.length === 0) {
                 alert("Falha ao excluir (ID: " + currentMyProductId + "). O item não foi encontrado ou foi bloqueado pelo RLS. Verifique as políticas no Supabase.");
@@ -1970,28 +1970,28 @@ async function searchPubChem(query) {
     }
 
     const savePersonalDbBtn = document.getElementById('savePersonalDbBtn');
-    if(savePersonalDbBtn) {
+    if (savePersonalDbBtn) {
         savePersonalDbBtn.addEventListener('click', async () => {
             if (!currentUser || !supabaseClient) {
                 alert("Você precisa estar logado para salvar no Meu Banco.");
                 return;
             }
-            
+
             const originalText = savePersonalDbBtn.innerHTML;
             savePersonalDbBtn.textContent = "Salvando...";
-            
+
             const nome = document.getElementById('pdNome').textContent.trim();
             const onu_number = document.getElementById('pdOnu').textContent.replace('UN: ', '').trim();
             const estado_fisico = document.getElementById('pdEstado') ? document.getElementById('pdEstado').value : '';
             const incompatibilidade = document.getElementById('pdIncompatibilidade') ? document.getElementById('pdIncompatibilidade').value : '';
-            
+
             const ghs_classes = [];
             document.querySelectorAll('#pdPictogramas .picto-item').forEach(item => {
                 if (item.classList.contains('active')) {
                     // Extract ID from the image alt or title. Since we don't store ID on the div, we can match by title
                     const title = item.title;
                     const ghsObj = allGhs.find(g => g.label === title);
-                    if(ghsObj) ghs_classes.push(ghsObj.id);
+                    if (ghsObj) ghs_classes.push(ghsObj.id);
                 }
             });
 
@@ -2051,7 +2051,7 @@ async function searchPubChem(query) {
         });
     }
 
-    if(classifyMixtureBtn) {
+    if (classifyMixtureBtn) {
         classifyMixtureBtn.addEventListener('click', async () => {
             if (currentMixture.length === 0) {
                 alert("Adicione pelo menos um resíduo à mistura antes de classificar.");
@@ -2089,7 +2089,7 @@ async function searchPubChem(query) {
                         const localId = GHS_API_TO_LOCAL[String(ghsCode).toUpperCase()];
                         if (localId) selectedPictograms.add(localId);
                     });
-                    
+
                     const picContainer = document.getElementById('pdPictogramas');
                     if (picContainer) {
                         picContainer.querySelectorAll('.picto-item').forEach(item => {
@@ -2111,7 +2111,7 @@ async function searchPubChem(query) {
                 } else {
                     document.getElementById('pdOnu').textContent = "A definir";
                 }
-                
+
                 if (data.risk_class) {
                     document.getElementById('pdClasse').textContent = data.risk_class;
                 } else {
@@ -2121,7 +2121,7 @@ async function searchPubChem(query) {
                 // Palavra de Advertência e Alerta de Segurança
                 const alertBanner = document.getElementById('mixtureError');
                 const printBtn = document.getElementById('printBtn');
-                
+
                 // Verifica severidade
                 const hasCritical = (data.safety_alert && (data.safety_alert.includes('[CRITICAL]') || data.safety_alert.includes('[FATAL]'))) || (data.details && data.details.incompatibilities && data.details.incompatibilities.some(i => i.severity === 'CRITICAL' || i.severity === 'FATAL'));
                 document.getElementById('pdAdvertencia').textContent = hasCritical ? 'PERIGO' : 'ATENÇÃO';
@@ -2130,7 +2130,7 @@ async function searchPubChem(query) {
                     if (data.safety_alert.includes('[CRITICAL]') || data.safety_alert.includes('[FATAL]') || data.safety_alert.includes('[WARNING]')) {
                         alertBanner.textContent = data.safety_alert;
                         alertBanner.classList.remove('hidden');
-                        
+
                         if (hasCritical) {
                             alertBanner.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
                             alertBanner.style.color = 'var(--danger)';
@@ -2169,9 +2169,9 @@ async function searchPubChem(query) {
                 }
 
                 // Frases H: começa com as da API e adiciona as dos produtos (PubChem) que não estejam duplicadas
-                const apiHPhrases = (data.details && data.details.h_phrases_texts) ? data.details.h_phrases_texts : 
+                const apiHPhrases = (data.details && data.details.h_phrases_texts) ? data.details.h_phrases_texts :
                     (data.h_phrases || []).map(h => ({ code: h, text: dictPhrases[h] ? dictPhrases[h].replace(/^[HP]\d{3}[+\d]*:\s*/i, '') : '' }));
-                
+
                 const apiHCodes = new Set(apiHPhrases.map(h => typeof h === 'object' ? h.code : h.match(/H\d{3}/)?.[0]));
                 const combinedH = [...apiHPhrases];
 
@@ -2225,14 +2225,14 @@ async function searchPubChem(query) {
         });
     }
 
-    if(saveMixtureBtn) {
+    if (saveMixtureBtn) {
         saveMixtureBtn.addEventListener('click', async () => {
             if (!currentUser || !supabaseClient) {
                 alert("Você precisa estar logado para salvar receitas na nuvem.");
                 return;
             }
             if (currentMixture.length === 0) return;
-            
+
             const recipeName = prompt("Digite um nome para esta Receita/Mistura (ex: Mistura HPLC):");
             if (!recipeName) return;
 
@@ -2263,20 +2263,20 @@ async function searchPubChem(query) {
         });
     }
 
-    if(loadMixtureBtn) {
+    if (loadMixtureBtn) {
         loadMixtureBtn.addEventListener('click', () => {
             savedMixturesModal.classList.remove('hidden');
             renderSavedMixtures();
         });
     }
 
-    if(closeSavedMixturesBtn) {
+    if (closeSavedMixturesBtn) {
         closeSavedMixturesBtn.addEventListener('click', () => {
             savedMixturesModal.classList.add('hidden');
         });
     }
 
-    window.loadRecipe = function(id) {
+    window.loadRecipe = function (id) {
         const recipe = mySavedRecipesCache.find(r => r.id == id);
         if (!recipe) return;
 
@@ -2301,11 +2301,11 @@ async function searchPubChem(query) {
         }, 50);
     };
 
-    window.deleteRecipe = async function(id) {
+    window.deleteRecipe = async function (id) {
         if (!confirm("Tem certeza que deseja apagar esta receita?")) return;
-        
+
         const { error } = await supabaseClient.from('meus_produtos').delete().eq('id', id);
-        
+
         if (error) {
             alert("Erro ao excluir receita: " + error.message);
         } else {
