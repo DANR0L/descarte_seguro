@@ -1698,83 +1698,113 @@ async function searchPubChem(query) {
         const unifiedOnu = document.getElementById('pdOnu') ? document.getElementById('pdOnu').textContent : '';
         const unifiedClass = document.getElementById('pdClasse') ? document.getElementById('pdClasse').textContent : '';
         
-        let maxH = 6;
-        let maxP = 6;
-
         const hLisNodes = Array.from(document.getElementById('pdFrasesH').children);
         const pLisNodes = Array.from(document.getElementById('pdFrasesP').children);
-        
-        const hLis = hLisNodes.map(li => li.outerHTML).join('');
-        const pLis = pLisNodes.slice(0, maxP).map(li => li.outerHTML).join('');
 
         let onuOnly = unifiedOnu;
         if (unifiedOnu.toUpperCase().startsWith("UN") && unifiedOnu.split(" ").length > 1) {
             onuOnly = unifiedOnu.split(" ")[1];
         }
 
-        const singleForm = `
-        <div class="form-container size-${configVol}">
-            <div class="print-title">${unifiedName.toUpperCase()}</div>
-            <div class="print-subtitle">(${unifiedComp})</div>
-            <div class="print-subtitle" style="font-weight: bold; margin-top: 1mm;">${unifiedOnu}</div>
-            
-            <div class="print-warning-banner">
-                <div style="flex: 1;"></div>
-                <div style="flex: 2; text-align: center;">${unifiedAdv}</div>
-                <div style="flex: 1; text-align: right; font-size: 0.6em; line-height: 1.1; padding-right: 2mm;">
-                    <div style="font-weight: normal;">UN: <span style="font-weight: bold;">${onuOnly}</span></div>
-                    <div style="font-weight: normal;">Classe: <span style="font-weight: bold;">${unifiedClass}</span></div>
-                </div>
-            </div>
-            
-            <div class="print-pictograms">
-                ${pictogramsHtml}
-            </div>
+        // Função que gera o HTML de uma etiqueta com o limite de frases desejado
+        function buildForm(maxH, maxP) {
+            const hLis = hLisNodes.slice(0, maxH).map(li => li.outerHTML).join('');
+            const pLis = pLisNodes.slice(0, maxP).map(li => li.outerHTML).join('');
+            return `
+            <div class="form-container size-${configVol}">
+                <div class="label-inner">
+                    <div class="print-title">${unifiedName.toUpperCase()}</div>
+                    <div class="print-subtitle">(${unifiedComp})</div>
+                    <div class="print-subtitle" style="font-weight: bold; margin-top: 0;">${unifiedOnu}</div>
+                    
+                    <div class="print-warning-banner">
+                        <div style="flex: 1;"></div>
+                        <div style="flex: 2; text-align: center;">${unifiedAdv}</div>
+                        <div style="flex: 1; text-align: right; font-size: 0.6em; line-height: 1.1; padding-right: 2mm;">
+                            <div style="font-weight: normal;">UN: <span style="font-weight: bold;">${onuOnly}</span></div>
+                            <div style="font-weight: normal;">Classe: <span style="font-weight: bold;">${unifiedClass}</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="print-pictograms">
+                        ${pictogramsHtml}
+                    </div>
 
-            <div class="print-grid-2col phrases-grid">
-                <div>
-                    <div class="print-box-title">FRASES DE PERIGO:</div>
-                    <div class="print-phrases">
-                        <ul>${hLis}</ul>
+                    <div class="print-grid-2col phrases-grid">
+                        <div>
+                            <div class="print-box-title">FRASES DE PERIGO:</div>
+                            <div class="print-phrases">
+                                <ul>${hLis}</ul>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="print-box-title">FRASES DE PRECAUÇÃO:</div>
+                            <div class="print-phrases">
+                                <ul>${pLis}</ul>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <div class="print-box-title">FRASES DE PRECAUÇÃO:</div>
-                    <div class="print-phrases">
-                        <ul>${pLis}</ul>
-                    </div>
-                </div>
-            </div>
 
-            <div class="print-grid-2col info-grid">
-                <div>
-                    <div class="print-box-title">INFORMAÇÕES DO RESÍDUO:</div>
-                    <div class="print-info-text">
-                        <strong>Data de Início do Acúmulo:</strong> ${dataFormatada}<br>
-                        <strong>Estado Físico:</strong> ${estado}<br>
-                        <strong>Volume Máximo:</strong> ${vol}
+                    <div class="print-grid-2col info-grid">
+                        <div>
+                            <div class="print-box-title">INFORMAÇÕES DO RESÍDUO:</div>
+                            <div class="print-info-text">
+                                <div><strong>Data de Início do Acúmulo:</strong> ${dataFormatada}</div>
+                                <div><strong>Estado Físico:</strong> ${estado}</div>
+                                <div><strong>Volume Máximo:</strong> ${vol}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="print-box-title">IDENTIFICAÇÃO DO GERADOR:</div>
+                            <div class="print-info-text">
+                                <div><strong>Empresa/Setor:</strong> ${empresa}</div>
+                                <div><strong>Endereço:</strong> ${endereco}</div>
+                                <div><strong>Responsável Técnico:</strong> ${resp}</div>
+                                <div><strong>Telefone de Emergência (24h):</strong> ${tel}</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <div class="print-box-title">IDENTIFICAÇÃO DO GERADOR:</div>
-                    <div class="print-info-text">
-                        <strong>Empresa/Setor:</strong> ${empresa}<br>
-                        <strong>Endereço:</strong> ${endereco}<br>
-                        <strong>Responsável Técnico:</strong> ${resp}<br>
-                        <strong>Telefone de Emergência (24h):</strong> ${tel}
-                    </div>
-                </div>
-            </div>
-        </div>`;
-
-        let formsHtml = '';
-        for (let i = 0; i < qtdEtiquetas; i++) {
-            formsHtml += singleForm;
+            </div>`;
         }
 
-        printArea.innerHTML = `<div class="print-page">\n${formsHtml}\n</div>`;
+        function buildPage(maxH, maxP) {
+            let formsHtml = '';
+            for (let i = 0; i < qtdEtiquetas; i++) {
+                formsHtml += buildForm(maxH, maxP);
+            }
+            return `<div class="print-page">\n${formsHtml}\n</div>`;
+        }
 
-        window.print();
+        // Renderiza com 6 frases primeiro
+        printArea.innerHTML = buildPage(6, 6);
+
+        // Para etiqueta B: detecta overflow após render e reduz para 5 frases se necessário
+        setTimeout(() => {
+            if (configVol === 'B') {
+                let overflow = false;
+                printArea.querySelectorAll('.size-B').forEach(label => {
+                    // Verifica se o container está maior do que deveria (74mm ≈ 280px)
+                    if (label.scrollHeight > label.clientHeight + 2) {
+                        overflow = true;
+                    }
+                    // Verifica também a seção de frases individualmente
+                    label.querySelectorAll('.phrases-grid').forEach(grid => {
+                        if (grid.scrollHeight > grid.clientHeight + 2) {
+                            overflow = true;
+                        }
+                    });
+                });
+
+                if (overflow) {
+                    console.log('[Etiqueta B] Overflow detectado — reduzindo para 5 frases.');
+                    printArea.innerHTML = buildPage(5, 5);
+                }
+            }
+
+            window.print();
+        }, 150);
+
     });
 
     // --- Lógica do Relatório (Dashboard) ---
