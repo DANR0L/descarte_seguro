@@ -318,12 +318,15 @@ body { background-color: var(--bg-dark); color: var(--text-primary); line-height
         margin-bottom: 0.5mm;
         line-height: 1.1;
     }
-    .size-C .print-ghs-title { font-size: 10pt; margin-bottom: 2mm; }
-    .size-C .print-gen-info { font-size: 7.5pt; }
-    .size-C .print-ghs-pictos-row img { width: 14mm; height: 14mm; }
-    .size-C .print-adv-word { font-size: 12pt; }
-    .size-C .print-h-phrases strong, .size-C .print-p-phrases strong { font-size: 8.5pt; }
-    .size-C .print-ghs-right { font-size: 7pt; }
+    .size-C .print-ghs-title { font-size: 9pt; margin-bottom: 1.5mm; padding-bottom: 1mm;}
+    .size-C .print-gen-info { font-size: 7pt; }
+    .size-C .print-comp-info { margin-top: 1.5mm; font-size: 8pt; }
+    .size-C .print-ghs-pictos-row img { width: 12mm; height: 12mm; }
+    .size-C .print-adv-word { font-size: 11pt; margin-top: 1mm;}
+    .size-C .print-phys-state { font-size: 7.5pt; gap: 1mm; }
+    .size-C .print-h-phrases, .size-C .print-p-phrases { margin-bottom: 1.5mm; }
+    .size-C .print-h-phrases strong, .size-C .print-p-phrases strong { font-size: 7.5pt; margin-bottom: 0.5mm; }
+    .size-C .print-ghs-right { font-size: 6.5pt; }
 
     /* Bloco 3: Rodapé */
     .print-footer-block {
@@ -333,7 +336,7 @@ body { background-color: var(--bg-dark); color: var(--text-primary); line-height
         padding: 1.5mm;
         flex: 0 0 auto;
     }
-    .size-C .print-footer-block { font-size: 6.5pt; }
+    .size-C .print-footer-block { font-size: 6pt; padding: 1mm; }
 }
 
 
