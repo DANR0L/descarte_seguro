@@ -1727,17 +1727,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         const getTransportSvg = (c) => {
-            if (c.includes('3')) return 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="%23E3000F"/><text x="50" y="85" fill="black" font-size="25" text-anchor="middle" font-family="Arial" font-weight="bold">3</text><text x="50" y="60" fill="black" font-size="35" text-anchor="middle">🔥</text></svg>';
-            if (c.includes('8')) return 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="50" fill="white"/><rect y="50" width="100" height="50" fill="black"/><text x="50" y="90" fill="white" font-size="25" text-anchor="middle" font-family="Arial" font-weight="bold">8</text><text x="50" y="45" fill="black" font-size="30" text-anchor="middle">🧪</text><rect width="100" height="100" fill="none" stroke="black" stroke-width="4"/></svg>';
-            if (c.includes('6.1')) return 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="white" stroke="black" stroke-width="4"/><text x="50" y="85" fill="black" font-size="25" text-anchor="middle" font-family="Arial" font-weight="bold">6</text><text x="50" y="60" fill="black" font-size="35" text-anchor="middle">☠️</text></svg>';
-            if (c.includes('9')) return 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="white" stroke="black" stroke-width="4"/><line x1="10" y1="0" x2="10" y2="50" stroke="black" stroke-width="4"/><line x1="30" y1="0" x2="30" y2="50" stroke="black" stroke-width="4"/><line x1="50" y1="0" x2="50" y2="50" stroke="black" stroke-width="4"/><line x1="70" y1="0" x2="70" y2="50" stroke="black" stroke-width="4"/><line x1="90" y1="0" x2="90" y2="50" stroke="black" stroke-width="4"/><text x="50" y="85" fill="black" font-size="25" text-anchor="middle" font-family="Arial" font-weight="bold">9</text></svg>';
+            if (c === '3') return 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="%23E3000F"/><text x="50" y="85" fill="black" font-size="25" text-anchor="middle" font-family="Arial" font-weight="bold">3</text><text x="50" y="60" fill="black" font-size="35" text-anchor="middle">🔥</text></svg>';
+            if (c === '8') return 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="50" fill="white"/><rect y="50" width="100" height="50" fill="black"/><text x="50" y="90" fill="white" font-size="25" text-anchor="middle" font-family="Arial" font-weight="bold">8</text><text x="50" y="45" fill="black" font-size="30" text-anchor="middle">🧪</text><rect width="100" height="100" fill="none" stroke="black" stroke-width="4"/></svg>';
+            if (c === '6.1') return 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="white" stroke="black" stroke-width="4"/><text x="50" y="85" fill="black" font-size="25" text-anchor="middle" font-family="Arial" font-weight="bold">6</text><text x="50" y="60" fill="black" font-size="35" text-anchor="middle">☠️</text></svg>';
+            if (c === '9') return 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="white" stroke="black" stroke-width="4"/><line x1="10" y1="0" x2="10" y2="50" stroke="black" stroke-width="4"/><line x1="30" y1="0" x2="30" y2="50" stroke="black" stroke-width="4"/><line x1="50" y1="0" x2="50" y2="50" stroke="black" stroke-width="4"/><line x1="70" y1="0" x2="70" y2="50" stroke="black" stroke-width="4"/><line x1="90" y1="0" x2="90" y2="50" stroke="black" stroke-width="4"/><text x="50" y="85" fill="black" font-size="25" text-anchor="middle" font-family="Arial" font-weight="bold">9</text></svg>';
             return '';
         };
 
         let transportDiamonds = '';
         if (unifiedClass) {
-            const classes = unifiedClass.split(',').map(s => s.trim());
-            transportDiamonds = classes.map(c => `<img src='${getTransportSvg(c)}'>`).join('');
+            const matches = unifiedClass.match(/(6\.1|[389])/g) || [];
+            const uniqueClasses = [...new Set(matches)];
+            transportDiamonds = uniqueClasses.map(c => `<img src='${getTransportSvg(c)}'>`).join('');
         }
 
         // Função que gera o HTML de uma etiqueta com o limite de frases desejado
