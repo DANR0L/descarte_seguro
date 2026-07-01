@@ -1682,15 +1682,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         document.getElementById('dynamicPrintStyle').innerHTML = dynamicCSS;
 
-        let pictogramsHtml = '';
-        let pictoCount = 0;
-        allGhs.forEach(ghs => {
-            if (selectedPictograms.has(ghs.id) && pictoCount < 4) {
-                pictogramsHtml += `<img src="${ghs.img}" onerror="this.style.display='none'">`;
-                pictoCount++;
-            }
-        });
-
         const printArea = document.getElementById('printArea');
         const unifiedName = document.getElementById('pdNome').textContent;
         const unifiedComp = document.getElementById('pdComposicao').textContent;
@@ -1705,67 +1696,142 @@ document.addEventListener('DOMContentLoaded', () => {
         if (unifiedOnu.toUpperCase().startsWith("UN") && unifiedOnu.split(" ").length > 1) {
             onuOnly = unifiedOnu.split(" ")[1];
         }
+        
+        let properShippingName = unifiedName.toUpperCase();
+        if (onuOnly && properShippingName && !properShippingName.startsWith("RESÍDUO")) {
+            properShippingName = "RESÍDUO DE " + properShippingName;
+        }
+        
+        let hideGhsIds = [];
+        if (unifiedClass.includes('3')) hideGhsIds.push('ghs02');
+        if (unifiedClass.includes('8')) hideGhsIds.push('ghs05');
+        if (unifiedClass.includes('6.1')) hideGhsIds.push('ghs06');
+
+        let pictogramsHtml = '';
+        let pictoCount = 0;
+        allGhs.forEach(ghs => {
+            if (selectedPictograms.has(ghs.id) && !hideGhsIds.includes(ghs.id) && pictoCount < 4) {
+                pictogramsHtml += `<img src="${ghs.img}" onerror="this.style.display='none'">`;
+                pictoCount++;
+            }
+        });
+        
+        const getTransportSvg = (c) => {
+            if (c.includes('3')) return 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="%23E3000F"/><text x="50" y="85" fill="black" font-size="20" text-anchor="middle" font-family="Arial" font-weight="bold">3</text><text x="50" y="55" fill="black" font-size="35" text-anchor="middle">🔥</text></svg>';
+            if (c.includes('8')) return 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="50" fill="white"/><rect y="50" width="100" height="50" fill="black"/><text x="50" y="90" fill="white" font-size="20" text-anchor="middle" font-family="Arial" font-weight="bold">8</text><text x="50" y="45" fill="black" font-size="35" text-anchor="middle">🧪</text></svg>';
+            if (c.includes('6.1')) return 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="white" stroke="black" stroke-width="2"/><text x="50" y="85" fill="black" font-size="20" text-anchor="middle" font-family="Arial" font-weight="bold">6</text><text x="50" y="55" fill="black" font-size="35" text-anchor="middle">☠️</text></svg>';
+            if (c.includes('9')) return 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="white" stroke="black" stroke-width="2"/><line x1="10" y1="0" x2="10" y2="50" stroke="black" stroke-width="4"/><line x1="30" y1="0" x2="30" y2="50" stroke="black" stroke-width="4"/><line x1="50" y1="0" x2="50" y2="50" stroke="black" stroke-width="4"/><line x1="70" y1="0" x2="70" y2="50" stroke="black" stroke-width="4"/><line x1="90" y1="0" x2="90" y2="50" stroke="black" stroke-width="4"/><text x="50" y="85" fill="black" font-size="20" text-anchor="middle" font-family="Arial" font-weight="bold">9</text></svg>';
+            return '';
+        };
+
+        let transportDiamonds = '';
+        if (unifiedClass) {
+            const classes = unifiedClass.split(',').map(s => s.trim());
+            transportDiamonds = classes.map(c => `<img src='${getTransportSvg(c)}'>`).join('');
+        }
 
         // Função que gera o HTML de uma etiqueta com o limite de frases desejado
         function buildForm(maxH, maxP) {
             const hLis = hLisNodes.slice(0, maxH).map(li => li.outerHTML).join('');
             const pLis = pLisNodes.slice(0, maxP).map(li => li.outerHTML).join('');
-            return `
-            <div class="form-container size-${configVol}">
-                <div class="label-inner">
-                    <div class="print-title">${unifiedName.toUpperCase()}</div>
-                    <div class="print-subtitle">(${unifiedComp})</div>
-                    <div class="print-subtitle" style="font-weight: bold; margin-top: 0;">${unifiedOnu}</div>
-                    
-                    <div class="print-warning-banner">
-                        <div style="flex: 1;"></div>
-                        <div style="flex: 2; text-align: center;">${unifiedAdv}</div>
-                        <div style="flex: 1; text-align: right; font-size: 0.6em; line-height: 1.1; padding-right: 2mm;">
-                            <div style="font-weight: normal;">UN: <span style="font-weight: bold;">${onuOnly}</span></div>
-                            <div style="font-weight: normal;">Classe: <span style="font-weight: bold;">${unifiedClass}</span></div>
+            
+            if (configVol === 'C' || configVol === 'D') {
+                return `
+                <div class="form-container size-${configVol}">
+                    <div class="label-inner">
+                        <div class="print-transport-block">
+                            <div class="print-transport-info">
+                                <div class="t-onu">${unifiedOnu ? 'NÚMERO ONU: ' + onuOnly : ''}</div>
+                                <div class="t-nae">NOME APROPRIADO PARA EMBARQUE: ${properShippingName}</div>
+                                <div class="t-class">CLASSE DE RISCO: ${unifiedClass}</div>
+                            </div>
+                            <div class="print-transport-diamonds">
+                                ${transportDiamonds}
+                            </div>
                         </div>
+                        <div class="print-ghs-block">
+                            <div class="print-ghs-title">RESÍDUO QUÍMICO PERIGOSO: ${unifiedName.toUpperCase()}</div>
+                            <div class="print-ghs-grid">
+                                <div class="print-ghs-left">
+                                    <div class="print-gen-info">Estabelecimento gerador: <span>${empresa}</span></div>
+                                    <div class="print-gen-info">Endereço: <span>${endereco}</span></div>
+                                    <div class="print-gen-info">Responsável: <span>${resp}</span></div>
+                                    <div class="print-gen-info">Telefone: <span>${tel}</span></div>
+                                    <div class="print-comp-info">Composição química:<br><span style="font-weight:normal">${unifiedComp}</span></div>
+                                    <div class="print-ghs-pictos-row">${pictogramsHtml}</div>
+                                    <div class="print-adv-word">${unifiedAdv}</div>
+                                    <div class="print-phys-state">
+                                        <span>Estado físico: ${estado}</span>
+                                        <span>Massa/Vol: ${vol}</span>
+                                    </div>
+                                </div>
+                                <div class="print-ghs-right">
+                                    <div class="print-h-phrases"><strong>Frases de perigo</strong><ul>${hLis}</ul></div>
+                                    <div class="print-p-phrases"><strong>Frases de precaução</strong><ul>${pLis}</ul></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="print-footer-block">A ficha com dados de segurança do resíduo químico (FDSR) pode ser obtida por meio do site da instituição.</div>
                     </div>
-                    
-                    <div class="print-pictograms">
-                        ${pictogramsHtml}
-                    </div>
+                </div>`;
+            } else {
+                return `
+                <div class="form-container size-${configVol}">
+                    <div class="label-inner">
+                        <div class="print-title">${unifiedName.toUpperCase()}</div>
+                        <div class="print-subtitle">(${unifiedComp})</div>
+                        <div class="print-subtitle" style="font-weight: bold; margin-top: 0;">${unifiedOnu}</div>
+                        
+                        <div class="print-warning-banner">
+                            <div style="flex: 1;"></div>
+                            <div style="flex: 2; text-align: center;">${unifiedAdv}</div>
+                            <div style="flex: 1; text-align: right; font-size: 0.6em; line-height: 1.1; padding-right: 2mm;">
+                                <div style="font-weight: normal;">UN: <span style="font-weight: bold;">${onuOnly}</span></div>
+                                <div style="font-weight: normal;">Classe: <span style="font-weight: bold;">${unifiedClass}</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="print-pictograms">
+                            ${pictogramsHtml}
+                        </div>
 
-                    <div class="print-grid-2col phrases-grid">
-                        <div>
-                            <div class="print-box-title">FRASES DE PERIGO:</div>
-                            <div class="print-phrases">
-                                <ul>${hLis}</ul>
+                        <div class="print-grid-2col phrases-grid">
+                            <div>
+                                <div class="print-box-title">FRASES DE PERIGO:</div>
+                                <div class="print-phrases">
+                                    <ul>${hLis}</ul>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="print-box-title">FRASES DE PRECAUÇÃO:</div>
+                                <div class="print-phrases">
+                                    <ul>${pLis}</ul>
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <div class="print-box-title">FRASES DE PRECAUÇÃO:</div>
-                            <div class="print-phrases">
-                                <ul>${pLis}</ul>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div class="print-grid-2col info-grid">
-                        <div>
-                            <div class="print-box-title">INFORMAÇÕES DO RESÍDUO:</div>
-                            <div class="print-info-text">
-                                <div><strong>Data de Início do Acúmulo:</strong> ${dataFormatada}</div>
-                                <div><strong>Estado Físico:</strong> ${estado}</div>
-                                <div><strong>Volume Máximo:</strong> ${vol}</div>
+                        <div class="print-grid-2col info-grid">
+                            <div>
+                                <div class="print-box-title">INFORMAÇÕES DO RESÍDUO:</div>
+                                <div class="print-info-text">
+                                    <div><strong>Data de Início do Acúmulo:</strong> ${dataFormatada}</div>
+                                    <div><strong>Estado Físico:</strong> ${estado}</div>
+                                    <div><strong>Volume Máximo:</strong> ${vol}</div>
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <div class="print-box-title">IDENTIFICAÇÃO DO GERADOR:</div>
-                            <div class="print-info-text">
-                                <div><strong>Empresa/Setor:</strong> ${empresa}</div>
-                                <div><strong>Endereço:</strong> ${endereco}</div>
-                                <div><strong>Responsável Técnico:</strong> ${resp}</div>
-                                <div><strong>Telefone de Emergência (24h):</strong> ${tel}</div>
+                            <div>
+                                <div class="print-box-title">IDENTIFICAÇÃO DO GERADOR:</div>
+                                <div class="print-info-text">
+                                    <div><strong>Empresa/Setor:</strong> ${empresa}</div>
+                                    <div><strong>Endereço:</strong> ${endereco}</div>
+                                    <div><strong>Responsável Técnico:</strong> ${resp}</div>
+                                    <div><strong>Telefone de Emergência (24h):</strong> ${tel}</div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>`;
+                </div>`;
+            }
         }
 
         function buildPage(maxH, maxP) {

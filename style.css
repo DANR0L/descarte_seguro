@@ -193,17 +193,147 @@ body { background-color: var(--bg-dark); color: var(--text-primary); line-height
     .size-B .print-info-text  { font-size: 3.5pt; line-height: 1.1; overflow: hidden; }
 
 
-    /* === TAMANHO D: 210×148mm === */
-    .size-D.form-container { width: 210mm; height: 148mm; border-width: 1.5mm; border-radius: 4mm; clip-path: inset(0 round 4mm); }
-    .size-D .print-title       { font-size: 17pt; }
-    .size-D .print-subtitle    { font-size: 10.5pt; }
-    .size-D .print-warning-banner { font-size: 22pt; padding: 1.5mm 0; }
-    .size-D .print-pictograms  { padding: 2.5mm; }
-    .size-D .print-pictograms img { max-width: 30mm; max-height: 30mm; }
-    .size-D .print-grid-2col > div { padding: 2mm 3mm; }
-    .size-D .print-box-title   { font-size: 10pt; margin-bottom: 1mm; }
-    .size-D .print-phrases     { font-size: 8.8pt; }
-    .size-D .print-info-text   { font-size: 7.5pt; }
+    /* === TAMANHO C & D: NOVO LAYOUT ANTT / GHS === */
+    .size-C.form-container, .size-D.form-container {
+        display: flex;
+        flex-direction: column;
+        background: white;
+    }
+    
+    .size-C.form-container { width: 148mm; height: 105mm; border-width: 1mm; border-radius: 2mm; clip-path: inset(0 round 2mm); }
+    .size-D.form-container { width: 210mm; height: 148mm; border-width: 1.5mm; border-radius: 3mm; clip-path: inset(0 round 3mm); }
+
+    /* Bloco 1: Transporte (Topo) */
+    .print-transport-block {
+        display: flex;
+        border-bottom: 2px solid black;
+        padding: 3mm;
+        align-items: center;
+        justify-content: space-between;
+        flex: 0 0 auto;
+    }
+    .print-transport-info {
+        flex: 1;
+        font-family: Arial, sans-serif;
+    }
+    .print-transport-info .t-onu { font-weight: bold; font-size: 14pt; margin-bottom: 1.5mm; }
+    .print-transport-info .t-nae { font-weight: bold; font-size: 11pt; text-transform: uppercase; margin-bottom: 1.5mm; }
+    .print-transport-info .t-class { font-weight: bold; font-size: 10pt; }
+    .print-transport-diamonds {
+        display: flex;
+        gap: 3mm;
+    }
+    .print-transport-diamonds img {
+        width: 25mm;
+        height: 25mm;
+        object-fit: contain;
+    }
+    .size-C .print-transport-diamonds img { width: 20mm; height: 20mm; }
+    .size-C .print-transport-info .t-onu { font-size: 12pt; }
+    .size-C .print-transport-info .t-nae { font-size: 9pt; }
+
+    /* Bloco 2: GHS e Gerador (Meio) */
+    .print-ghs-block {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        padding: 3mm;
+    }
+    .print-ghs-title {
+        text-align: center;
+        font-weight: bold;
+        font-size: 12pt;
+        margin-bottom: 3mm;
+        text-transform: uppercase;
+        border-bottom: 1px solid black;
+        padding-bottom: 1.5mm;
+    }
+    .print-ghs-grid {
+        display: flex;
+        flex: 1;
+        gap: 3mm;
+    }
+    .print-ghs-left {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5mm;
+        border-right: 1px solid black;
+        padding-right: 3mm;
+    }
+    .print-ghs-right {
+        flex: 1.2;
+        display: flex;
+        flex-direction: column;
+        font-size: 8.5pt;
+    }
+    
+    .print-gen-info { font-size: 8.5pt; line-height: 1.3; font-weight: bold; }
+    .print-gen-info span { font-weight: normal; }
+    .print-comp-info { margin-top: 3mm; font-size: 10pt; font-weight: bold; text-align: center; }
+    
+    .print-ghs-pictos-row {
+        display: flex;
+        justify-content: center;
+        gap: 2mm;
+        margin-top: 3mm;
+    }
+    .print-ghs-pictos-row img {
+        width: 18mm;
+        height: 18mm;
+        object-fit: contain;
+    }
+    .print-adv-word {
+        text-align: center;
+        color: #E3000F !important;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        font-weight: bold;
+        font-size: 15pt;
+        margin-top: 1.5mm;
+    }
+    
+    .print-phys-state {
+        margin-top: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 2mm;
+        font-size: 9pt;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    .print-h-phrases, .print-p-phrases {
+        margin-bottom: 3mm;
+    }
+    .print-h-phrases strong, .print-p-phrases strong {
+        display: block;
+        font-size: 9.5pt;
+        margin-bottom: 1mm;
+    }
+    .print-h-phrases ul, .print-p-phrases ul {
+        margin: 0; padding-left: 0;
+        list-style-type: none;
+    }
+    .print-h-phrases li, .print-p-phrases li {
+        margin-bottom: 0.5mm;
+        line-height: 1.1;
+    }
+    .size-C .print-ghs-title { font-size: 10pt; margin-bottom: 2mm; }
+    .size-C .print-gen-info { font-size: 7.5pt; }
+    .size-C .print-ghs-pictos-row img { width: 14mm; height: 14mm; }
+    .size-C .print-adv-word { font-size: 12pt; }
+    .size-C .print-h-phrases strong, .size-C .print-p-phrases strong { font-size: 8.5pt; }
+    .size-C .print-ghs-right { font-size: 7pt; }
+
+    /* Bloco 3: Rodapé */
+    .print-footer-block {
+        border-top: 1px solid black;
+        text-align: center;
+        font-size: 8pt;
+        padding: 1.5mm;
+        flex: 0 0 auto;
+    }
+    .size-C .print-footer-block { font-size: 6.5pt; }
 }
 
 
