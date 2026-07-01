@@ -2142,11 +2142,16 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 // Prepara o payload no formato esperado pelo /api/classify
                 const payload = {
-                    components: currentMixture.map(item => ({ name: item.produto.Common_Name_PT || item.produto.Common_Name, percentage: item.percentage })),
+                    components: currentMixture.map(item => ({ 
+                        name: item.produto.Common_Name_PT || item.produto.Common_Name, 
+                        percentage: item.percentage,
+                        h_phrases: item.produto.H_Phrases || []
+                    })),
                     substances: currentMixture.map(item => ({
                         name: item.produto.Common_Name_PT || item.produto.Common_Name,
-                        fraction: item.percentage, // FIXED to map to fraction
-                        percentage: item.percentage
+                        fraction: item.percentage,
+                        percentage: item.percentage,
+                        h_phrases: item.produto.H_Phrases || []
                     }))
                 };
 
