@@ -27,7 +27,7 @@ export default function handler(req, res) {
         return res.status(400).json({ error: `Invalid percentage for component "${name}". Must be a number between 0 and 100.` });
       }
       total += percentage;
-      parsed.push({ name, percentage });
+      parsed.push({ name, percentage, h_phrases: item.h_phrases || [] });
     }
 
     const analysis = analyzeMixture(parsed);
@@ -254,6 +254,14 @@ const INCOMPATIBILITY_MATRIX = [
 ];
 
 const CLASSIFICATION_RULES = [
+  {
+    conditions: ["formaldehyde", "flammable"],
+    un_number: "UN1198",
+    proper_shipping_name: "FORMALDEÍDO EM SOLUÇÃO, INFLAMÁVEL",
+    risk_class: "3 (8)",
+    pictograms: ["GHS02", "GHS05", "GHS06", "GHS08"],
+    h_phrases: ["H226", "H301", "H311", "H314", "H331", "H351"]
+  },
   {
     conditions: ["formaldehyde"],
     un_number: "UN2209",
@@ -517,11 +525,22 @@ function detectClasses(components) {
   for (const comp of components) {
     const name = comp.name;
     const pct = comp.percentage;
+    const h_phrases = comp.h_phrases || [];
 
     for (const [key, keywords] of Object.entries(KEYWORDS)) {
       if (matchesKeywords(name, keywords)) {
         fractions[key] += pct;
       }
+    }
+    
+    // Inferencia dinamica baseada em frases de perigo (H-Phrases)
+    const hasFlammable = h_phrases.some(h => ["H220", "H221", "H222", "H223", "H224", "H225", "H226", "H227"].includes(h.trim().substring(0,4)));
+    if (hasFlammable) {
+       fractions["flammable"] += pct;
+    }
+    const hasToxic = h_phrases.some(h => ["H300", "H301", "H310", "H311", "H330", "H331"].includes(h.trim().substring(0,4)));
+    if (hasToxic) {
+       fractions["toxic_acute"] += pct;
     }
   }
 
