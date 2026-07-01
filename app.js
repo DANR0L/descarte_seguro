@@ -1693,13 +1693,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const pLisNodes = Array.from(document.getElementById('pdFrasesP').children);
 
         let onuOnly = unifiedOnu;
-        if (unifiedOnu.toUpperCase().startsWith("UN") && unifiedOnu.split(" ").length > 1) {
+        let officialNae = unifiedName.toUpperCase();
+        
+        if (unifiedOnu.toUpperCase().startsWith("UN") && unifiedOnu.includes("-")) {
+            const parts = unifiedOnu.split("-");
+            onuOnly = parts[0].replace("UN", "").trim();
+            officialNae = parts.slice(1).join("-").trim();
+        } else if (unifiedOnu.toUpperCase().startsWith("UN") && unifiedOnu.split(" ").length > 1) {
             onuOnly = unifiedOnu.split(" ")[1];
         }
         
-        let properShippingName = unifiedName.toUpperCase();
+        let properShippingName = officialNae;
         if (onuOnly && properShippingName && !properShippingName.startsWith("RESÍDUO")) {
             properShippingName = "RESÍDUO DE " + properShippingName;
+            // Se o nome oficial contiver N.E. (Não Especificado) ou MISTURA, adicionar o nome técnico entre parênteses
+            if ((properShippingName.includes("N.E.") || properShippingName.includes("MISTURA")) && officialNae !== unifiedName.toUpperCase()) {
+                properShippingName += " (" + unifiedName.toUpperCase() + ")";
+            }
         }
         
         let hideGhsIds = [];
